@@ -48,7 +48,6 @@ async function initServer(secret: string) {
             const _removeWebRTCListener = createWebRTCServer(
               peer._channel,
               (request) => {
-                console.log(request);
                 return new Response(request.body, {
                   status: 200,
                   headers: {

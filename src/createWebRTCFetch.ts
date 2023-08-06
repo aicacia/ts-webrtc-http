@@ -153,13 +153,14 @@ export function createWebRTCFetch(channel: RTCDataChannel): WebRTCFetch {
     input: RequestInfo | URL,
     init?: RequestInit,
   ): Promise<Response> {
-    return new Promise((resolve, reject) =>
-      writeRequest(createRequestId(resolve, reject), new Request(input, init)),
-    );
+    return new Promise((resolve, reject) => {
+      const request = new Request(input, init);
+      writeRequest(createRequestId(resolve, reject), request);
+    });
   }
 
   fetch.close = () => {
-    channel.removeEventListener("message", onData);
+    channel.removeEventListener("message", onMessage);
   };
 
   return fetch;

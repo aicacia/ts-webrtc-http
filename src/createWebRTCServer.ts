@@ -32,7 +32,10 @@ function WebRTCRequestToNativeRequest(webRTCRequest: WebRTCRequest): Request {
   return new Request(webRTCRequest.path, {
     method: webRTCRequest.method,
     headers: webRTCRequest.headers,
-    body: webRTCRequest.stream.readable,
+    body:
+      webRTCRequest.method === "GET" || webRTCRequest.method === "HEAD"
+        ? null
+        : webRTCRequest.stream.readable,
     // @ts-ignore
     duplex: "half",
   });
@@ -105,6 +108,7 @@ export function createWebRTCServer(
 
   async function handle(requestId: number, request: Request) {
     const response = await handler(request);
+    console.log(request);
     await writeResponse(requestId, response);
   }
 
