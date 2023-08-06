@@ -1,0 +1,8 @@
+{
+  "name": "@aicacia/webrtc-fetch",
+  "private": true,
+  "source": "index.html",
+  "scripts": {
+    "build": "parcel build"
+  }
+}
