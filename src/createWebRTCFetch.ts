@@ -1,7 +1,7 @@
 import { bytesToInteger, integerToBytes } from "@aicacia/hash";
 import { N, R, concatUint8Array, encodeLine, randomUInt32 } from "./utils";
 
-export type Fetch = typeof fetch;
+type Fetch = typeof fetch;
 
 export type WebRTCFetch = Fetch & {
   close(): void;
