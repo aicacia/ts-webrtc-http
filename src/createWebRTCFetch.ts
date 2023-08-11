@@ -4,7 +4,7 @@ import { N, R, concatUint8Array, encodeLine, randomUInt32 } from "./utils";
 type Fetch = typeof fetch;
 
 export type WebRTCFetch = Fetch & {
-  close(): void;
+  destroy(): void;
 };
 
 type WebRTCResponse = {
@@ -159,7 +159,7 @@ export function createWebRTCFetch(channel: RTCDataChannel): WebRTCFetch {
     });
   }
 
-  fetch.close = () => {
+  fetch.destroy = () => {
     channel.removeEventListener("message", onMessage);
   };
 

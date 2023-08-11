@@ -52,9 +52,11 @@ export function createWebRTCServer(
   async function onRequestLine(requestId: number, line: Uint8Array) {
     const request = requests.get(requestId);
     if (!request) {
-      const [method, path, _version] = textDecoder.decode(line).split(/\s+/);
-      requests.set(requestId, createWebRTCRequest(method, path));
-      setTimeout(() => requests.delete(requestId), 60000);
+      const [method, path, version] = textDecoder.decode(line).split(/\s+/);
+      if (method && path && version) {
+        requests.set(requestId, createWebRTCRequest(method, path));
+        setTimeout(() => requests.delete(requestId), 60000);
+      }
     } else {
       if (!request.readHeaders) {
         if (line[0] === R && line[1] === N) {
