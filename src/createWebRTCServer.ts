@@ -16,6 +16,7 @@ interface WebRTCRequest {
 	headers: Headers;
 	stream: TransformStream<Uint8Array>;
 	writer: WritableStreamDefaultWriter<Uint8Array>;
+	timeoutId?: ReturnType<typeof setTimeout>;
 }
 
 function createWebRTCRequest(method: string, path: string): WebRTCRequest {
@@ -57,8 +58,9 @@ export function createWebRTCServer(
 		if (!request) {
 			const [method, path, version] = textDecoder.decode(line).split(/\s+/);
 			if (method && path && version) {
-				requests.set(requestId, createWebRTCRequest(method, path));
-				setTimeout(() => requests.delete(requestId), DEFAULT_TIMEOUT_MS);
+				const request = createWebRTCRequest(method, path);
+				requests.set(requestId, request);
+				request.timeoutId = setTimeout(() => requests.delete(requestId), DEFAULT_TIMEOUT_MS);
 			}
 		} else {
 			if (!request.readHeaders) {
@@ -74,6 +76,8 @@ export function createWebRTCServer(
 				if (line[0] === R && line[1] === N) {
 					request.writer.close();
 					requests.delete(requestId);
+					clearTimeout(request.timeoutId);
+					request.timeoutId = undefined;
 				} else {
 					request.writer.write(line);
 				}

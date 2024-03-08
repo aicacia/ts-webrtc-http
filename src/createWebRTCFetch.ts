@@ -49,6 +49,7 @@ function createWebRTCResponse(
 			}
 			webRTCResponse.handled = true;
 			clearTimeout(webRTCResponse.timeoutId);
+			webRTCResponse.timeoutId = undefined;
 			if (response.status >= 400) {
 				reject(response);
 			} else {
