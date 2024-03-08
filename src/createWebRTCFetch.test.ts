@@ -1,5 +1,5 @@
-import * as tape from "tape";
+import * as tape from 'tape';
 
-tape("test", (assert: tape.Test) => {
-  assert.end();
+tape('test', (assert: tape.Test) => {
+	assert.end();
 });

@@ -8,12 +8,12 @@
     "outDir": "cjs",
     "declarationDir": "types",
     "strict": true,
+    "skipLibCheck": true,
     "downlevelIteration": true,
-    "esModuleInterop": true,
-    "lib": ["DOM", "ESNext"]
+    "lib": ["ESNext", "DOM"]
   },
   "include": ["src"],
-  "exclude": ["src/**/*.test.*"],
+  "exclude": ["src/**/*.test.*", "src/**/*.benchmark.*"],
   "typedocOptions": {
     "entryPoints": ["src/index.ts"],
     "out": "docs",

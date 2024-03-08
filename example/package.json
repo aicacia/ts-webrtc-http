@@ -1,8 +1,8 @@
 {
-  "name": "@aicacia/webrtc-fetch",
-  "private": true,
-  "source": "index.html",
-  "scripts": {
-    "build": "parcel build --public-url '/ts-webrtc-fetch'"
-  }
+	"name": "@aicacia/webrtc-fetch",
+	"private": true,
+	"source": "index.html",
+	"scripts": {
+		"build": "parcel build --public-url '/ts-webrtc-fetch'"
+	}
 }
