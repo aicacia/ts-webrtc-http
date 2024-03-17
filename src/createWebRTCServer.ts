@@ -32,7 +32,7 @@ function createWebRTCRequest(method: string, path: string): WebRTCRequest {
 }
 
 function WebRTCRequestToNativeRequest(webRTCRequest: WebRTCRequest): Request {
-	return new Request(webRTCRequest.path, {
+	return new Request('webrtc-http://' + webRTCRequest.path, {
 		method: webRTCRequest.method,
 		headers: webRTCRequest.headers,
 		body:
@@ -68,7 +68,7 @@ export function createWebRTCServer(
 					request.readHeaders = true;
 					handle(requestId, WebRTCRequestToNativeRequest(request));
 				} else {
-					const [key, value] = textDecoder.decode(line).split(/\:\s+/);
+					const [key, value] = textDecoder.decode(line).split(/\:\s+/, 2);
 					request.headers.append(key, value);
 				}
 			} else {
@@ -115,7 +115,6 @@ export function createWebRTCServer(
 
 	async function handle(requestId: number, request: Request) {
 		const response = await handler(request);
-		console.log(request);
 		await writeResponse(requestId, response);
 	}
 

@@ -10,3 +10,5 @@ cjs/
 esm/
 .nyc_output/
 npm-debug.log
+.env*
+!.env.example

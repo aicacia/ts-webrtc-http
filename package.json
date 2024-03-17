@@ -23,7 +23,7 @@
 		"prettier": "prettier --ignore-path .eslintignore --ignore-unknown --write .",
 		"preCommit": "npm run prettier && npm run lint && npm run coverage",
 		"prepare": "husky install",
-		"example": "parcel serve example/index.html"
+		"example": "pnpm --filter ./example start"
 	},
 	"husky": {
 		"hooks": {
@@ -39,36 +39,36 @@
 	"license": "(MIT OR Apache-2.0)",
 	"readmeFilename": "README.md",
 	"devDependencies": {
-		"@rollup/plugin-commonjs": "25",
-		"@rollup/plugin-node-resolve": "15",
-		"@rollup/plugin-typescript": "11",
-		"@types/simple-peer": "9",
-		"@types/tape": "5",
-		"@typescript-eslint/eslint-plugin": "7",
-		"@typescript-eslint/parser": "7",
-		"eslint": "8",
-		"eslint-config-prettier": "9",
-		"eslint-plugin-prettier": "5",
-		"events": "3",
-		"husky": "9",
-		"nyc": "15",
-		"parcel": "2",
-		"prettier": "3",
-		"process": "0",
-		"rollup-plugin-esm-import-to-url": "2",
-		"rollup-plugin-terser": "7",
-		"simple-peer": "9",
-		"tap-nyc": "1",
-		"tap-spec": "5",
-		"tape": "5",
-		"ts-node": "10",
-		"tslib": "2",
-		"typedoc": "0",
-		"typescript": "5"
+		"@rollup/plugin-commonjs": "^25.0.7",
+		"@rollup/plugin-node-resolve": "^15.2.3",
+		"@rollup/plugin-typescript": "^11.1.6",
+		"@types/simple-peer": "^9.11.8",
+		"@types/tape": "^5.6.4",
+		"@typescript-eslint/eslint-plugin": "^7.1.1",
+		"@typescript-eslint/parser": "^7.1.1",
+		"eslint": "^8.57.0",
+		"eslint-config-prettier": "^9.1.0",
+		"eslint-plugin-prettier": "^5.1.3",
+		"events": "^3.3.0",
+		"husky": "^9.0.11",
+		"nyc": "^15.1.0",
+		"parcel": "^2.12.0",
+		"prettier": "^3.2.5",
+		"process": "^0.11.10",
+		"rollup-plugin-esm-import-to-url": "^2.1.0",
+		"rollup-plugin-terser": "^7.0.2",
+		"simple-peer": "^9.11.1",
+		"tap-nyc": "^1.0.3",
+		"tap-spec": "^5.0.0",
+		"tape": "^5.7.5",
+		"ts-node": "^10.9.2",
+		"tslib": "^2.6.2",
+		"typedoc": "^0.25.11",
+		"typescript": "^5.4.2"
 	},
 	"dependencies": {
-		"@aicacia/rand": "0",
-		"@aicacia/hash": "0"
+		"@aicacia/hash": "^0.2.3",
+		"@aicacia/rand": "^0.2.14"
 	},
 	"peerDependencies": {
 		"tslib": "2"

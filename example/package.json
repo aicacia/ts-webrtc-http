@@ -3,6 +3,7 @@
 	"private": true,
 	"source": "index.html",
 	"scripts": {
-		"build": "parcel build --public-url '/ts-webrtc-fetch'"
+		"build": "parcel build",
+		"start": "parcel serve"
 	}
 }

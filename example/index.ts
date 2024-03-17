@@ -7,7 +7,7 @@ import { PROTOCAL } from '../src/utils';
  * @returns {string}
  */
 async function authenticateServer(secret: string) {
-	const res = await fetch('https://p2p.aicacia.com/server', {
+	const res = await fetch(`${process.env.P2P_API_URL}/server`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
@@ -25,7 +25,7 @@ const peers: { [id: string]: SimplePeer.Instance } = {};
  */
 async function initServer(secret: string) {
 	const token = await authenticateServer(secret);
-	const socket = new WebSocket(`wss://p2p.aicacia.com/server/websocket?token=${token}`);
+	const socket = new WebSocket(`${process.env.P2P_WS_URL}/server/websocket?token=${token}`);
 	socket.addEventListener('open', () => {
 		socket.addEventListener('message', (event) => {
 			const message = JSON.parse(event.data);
@@ -77,7 +77,7 @@ async function initServer(secret: string) {
  * @returns {string}
  */
 async function authenticateClient(secret: string) {
-	const res = await fetch('https://p2p.aicacia.com/client', {
+	const res = await fetch(`${process.env.P2P_API_URL}/client`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
@@ -94,7 +94,7 @@ async function authenticateClient(secret: string) {
  */
 async function initClient(secret: string) {
 	const token = await authenticateClient(secret);
-	const socket = new WebSocket(`wss://p2p.aicacia.com/client/websocket?token=${token}`);
+	const socket = new WebSocket(`${process.env.P2P_WS_URL}/client/websocket?token=${token}`);
 	socket.addEventListener('open', () => {
 		const peer = new SimplePeer({
 			initiator: true,
