@@ -6,8 +6,7 @@ import {
 	R,
 	concatUint8Array,
 	encodeLine,
-	randomUInt32,
-	statusCodeToStatusText
+	randomUInt32
 } from './utils';
 
 type Fetch = typeof fetch;
@@ -17,6 +16,7 @@ export type WebRTCFetch = Fetch & {
 };
 
 type WebRTCResponse = {
+	requestId: number;
 	handled: boolean;
 	readStatus: boolean;
 	readHeaders: boolean;
@@ -26,43 +26,8 @@ type WebRTCResponse = {
 	stream: TransformStream;
 	writer: WritableStreamDefaultWriter<Uint8Array>;
 	timeoutId?: ReturnType<typeof setTimeout>;
-	handle: (response: Response) => void;
+	handle: (error: Error | undefined, response?: Response) => void;
 };
-
-function createWebRTCResponse(
-	resolve: (response: Response) => void,
-	reject: (response: Response) => void
-) {
-	const stream = new TransformStream();
-	const webRTCResponse: WebRTCResponse = {
-		handled: false,
-		readStatus: false,
-		readHeaders: false,
-		headers: new Headers(),
-		status: 200,
-		statusText: '',
-		stream,
-		writer: stream.writable.getWriter(),
-		handle(response) {
-			if (webRTCResponse.handled) {
-				return;
-			}
-			webRTCResponse.handled = true;
-			clearTimeout(webRTCResponse.timeoutId);
-			webRTCResponse.timeoutId = undefined;
-			if (response.status >= 400) {
-				reject(response);
-			} else {
-				resolve(response);
-			}
-		}
-	};
-	webRTCResponse.timeoutId = setTimeout(
-		() => webRTCResponse.handle(new Response(statusCodeToStatusText(408), { status: 408 })),
-		DEFAULT_TIMEOUT_MS
-	);
-	return webRTCResponse;
-}
 
 function WebRTCRequestToNativeResponse(webRTCRequest: WebRTCResponse): Response {
 	return new Response(webRTCRequest.stream.readable, {
@@ -80,15 +45,50 @@ export function createWebRTCFetch(channel: RTCDataChannel): WebRTCFetch {
 	const textEncoder = new TextEncoder();
 	const textDecoder = new TextDecoder();
 
-	function createRequestId(
+	function createWebRTCResponse(
+		requestId: number,
 		resolve: (response: Response) => void,
-		reject: (response: Response) => void
+		reject: (error: Error) => void
 	) {
+		const stream = new TransformStream();
+		const webRTCResponse: WebRTCResponse = {
+			requestId,
+			handled: false,
+			readStatus: false,
+			readHeaders: false,
+			headers: new Headers(),
+			status: 200,
+			statusText: '',
+			stream,
+			writer: stream.writable.getWriter(),
+			handle(error, response) {
+				if (webRTCResponse.handled) {
+					reject(new TypeError('Response already handled'));
+					return;
+				}
+				webRTCResponse.handled = true;
+				if (error) {
+					reject(error);
+				} else if (response) {
+					resolve(response);
+				} else {
+					reject(new TypeError('No response'));
+				}
+			}
+		};
+		webRTCResponse.timeoutId = setTimeout(
+			() => webRTCResponse.handle(new TypeError('Request timed out')),
+			DEFAULT_TIMEOUT_MS
+		);
+		return webRTCResponse;
+	}
+
+	function createRequest(resolve: (response: Response) => void, reject: (error: Error) => void) {
 		let requestId = randomUInt32();
 		while (responses.has(requestId)) {
 			requestId = randomUInt32();
 		}
-		responses.set(requestId, createWebRTCResponse(resolve, reject));
+		responses.set(requestId, createWebRTCResponse(requestId, resolve, reject));
 		return requestId;
 	}
 
@@ -126,13 +126,13 @@ export function createWebRTCFetch(channel: RTCDataChannel): WebRTCFetch {
 		if (response) {
 			if (!response.readStatus) {
 				response.readStatus = true;
-				const [_version, status, statusText] = textDecoder.decode(line).split(/\s+/);
+				const [_version, status, statusText] = textDecoder.decode(line).split(/\s+/, 3);
 				response.status = parseInt(status);
 				response.statusText = statusText;
 			} else if (!response.readHeaders) {
 				if (line[0] === R && line[1] === N) {
 					response.readHeaders = true;
-					response.handle(WebRTCRequestToNativeResponse(response));
+					response.handle(undefined, WebRTCRequestToNativeResponse(response));
 				} else {
 					const [key, value] = textDecoder.decode(line).split(/\:\s+/);
 					response.headers.append(key, value);
@@ -140,10 +140,12 @@ export function createWebRTCFetch(channel: RTCDataChannel): WebRTCFetch {
 			} else {
 				await response.writer.ready;
 				if (line[0] === R && line[1] === N) {
-					response.writer.close();
 					responses.delete(requestId);
+					clearTimeout(response.timeoutId);
+					response.timeoutId = undefined;
+					await response.writer.close();
 				} else {
-					response.writer.write(line);
+					await response.writer.write(line);
 				}
 			}
 		}
@@ -157,15 +159,12 @@ export function createWebRTCFetch(channel: RTCDataChannel): WebRTCFetch {
 	channel.addEventListener('message', onMessage);
 
 	function fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-		return new Promise((resolve, reject) => {
-			const request = new Request(input, init);
-			writeRequest(createRequestId(resolve, reject), request);
-		});
+		return new Promise((resolve, reject) =>
+			writeRequest(createRequest(resolve, reject), new Request(input, init))
+		);
 	}
 
-	fetch.destroy = () => {
-		channel.removeEventListener('message', onMessage);
-	};
+	fetch.destroy = () => channel.removeEventListener('message', onMessage);
 
 	return fetch;
 }
