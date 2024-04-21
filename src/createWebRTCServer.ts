@@ -9,7 +9,7 @@ import {
 	statusCodeToStatusText
 } from './utils';
 
-interface WebRTCRequest {
+interface WebRTCConnection {
 	readHeaders: boolean;
 	method: string;
 	path: string;
@@ -19,7 +19,7 @@ interface WebRTCRequest {
 	timeoutId?: ReturnType<typeof setTimeout>;
 }
 
-function createWebRTCRequest(method: string, path: string): WebRTCRequest {
+function createWebRTCConnection(method: string, path: string): WebRTCConnection {
 	const stream = new TransformStream<Uint8Array>();
 	return {
 		readHeaders: false,
@@ -31,14 +31,14 @@ function createWebRTCRequest(method: string, path: string): WebRTCRequest {
 	};
 }
 
-function WebRTCRequestToNativeRequest(webRTCRequest: WebRTCRequest): Request {
-	return new Request('webrtc-http://' + webRTCRequest.path, {
-		method: webRTCRequest.method,
-		headers: webRTCRequest.headers,
+function webRTCConnectionToNativeRequest(webRTCConnection: WebRTCConnection): Request {
+	return new Request(`webrtc-http:${webRTCConnection.path}`, {
+		method: webRTCConnection.method,
+		headers: webRTCConnection.headers,
 		body:
-			webRTCRequest.method === 'GET' || webRTCRequest.method === 'HEAD'
+			webRTCConnection.method === 'GET' || webRTCConnection.method === 'HEAD'
 				? null
-				: webRTCRequest.stream.readable,
+				: webRTCConnection.stream.readable,
 		// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 		// @ts-expect-error
 		duplex: 'half'
@@ -49,16 +49,16 @@ export function createWebRTCServer(
 	channel: RTCDataChannel,
 	handler: (request: Request) => Promise<Response> | Response
 ) {
-	const requests = new Map<number, WebRTCRequest>();
+	const requests = new Map<number, WebRTCConnection>();
 	const textEncoder = new TextEncoder();
 	const textDecoder = new TextDecoder();
 
-	async function onRequestLine(requestId: number, line: Uint8Array) {
+	async function onConnectionMessage(requestId: number, line: Uint8Array) {
 		const request = requests.get(requestId);
 		if (!request) {
 			const [method, path, version] = textDecoder.decode(line).split(/\s+/);
 			if (method && path && version) {
-				const request = createWebRTCRequest(method, path);
+				const request = createWebRTCConnection(method, path);
 				requests.set(requestId, request);
 				request.timeoutId = setTimeout(() => requests.delete(requestId), DEFAULT_TIMEOUT_MS);
 			}
@@ -66,7 +66,7 @@ export function createWebRTCServer(
 			if (!request.readHeaders) {
 				if (line[0] === R && line[1] === N) {
 					request.readHeaders = true;
-					handle(requestId, WebRTCRequestToNativeRequest(request));
+					handle(requestId, webRTCConnectionToNativeRequest(request));
 				} else {
 					const [key, value] = textDecoder.decode(line).split(/\:\s+/, 2);
 					request.headers.append(key, value);
@@ -121,7 +121,7 @@ export function createWebRTCServer(
 	function onMessage(event: MessageEvent) {
 		const array = new Uint8Array(event.data);
 		const requestId = bytesToInteger(array);
-		onRequestLine(requestId, array.slice(4));
+		onConnectionMessage(requestId, array.slice(4));
 	}
 	channel.addEventListener('message', onMessage);
 

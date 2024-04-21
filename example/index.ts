@@ -1,13 +1,12 @@
 import SimplePeer from 'simple-peer';
 import { createWebRTCFetch, createWebRTCServer } from '../src';
-import { PROTOCAL } from '../src/utils';
 
 /**
  * create a JWT for this server to connect to the WebSocket
  * @returns {string}
  */
-async function authenticateServer(secret: string) {
-	const res = await fetch(`${process.env.P2P_API_URL}/server`, {
+async function authenticate(type: 'server' | 'client', secret: string) {
+	const res = await fetch(`${process.env.P2P_API_URL}/${type}`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
@@ -24,7 +23,7 @@ const peers: { [id: string]: SimplePeer.Instance } = {};
  * starts WebSocket and listens for new clients, creates a WebRTC connection for new clients
  */
 async function initServer(secret: string) {
-	const token = await authenticateServer(secret);
+	const token = await authenticate('server', secret);
 	const socket = new WebSocket(`${process.env.P2P_WS_URL}/server/websocket?token=${token}`);
 	socket.addEventListener('open', () => {
 		socket.addEventListener('message', (event) => {
@@ -45,11 +44,10 @@ async function initServer(secret: string) {
 					});
 					peer.on('connect', () => {
 						const _removeWebRTCListener = createWebRTCServer(peer._channel, (request) => {
+							console.log(request);
 							return new Response(request.body, {
 								status: 200,
-								headers: {
-									'X-Version': PROTOCAL
-								}
+								headers: request.headers
 							});
 						});
 					});
@@ -73,27 +71,10 @@ async function initServer(secret: string) {
 	});
 }
 /**
- * create a JWT for this client to connect to the WebSocket
- * @returns {string}
- */
-async function authenticateClient(secret: string) {
-	const res = await fetch(`${process.env.P2P_API_URL}/client`, {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json'
-		},
-		body: JSON.stringify({ id: 'webrtc-example', password: secret })
-	});
-	if (res.status >= 400) {
-		throw new Error('failed to authenticate');
-	}
-	return await res.text();
-}
-/**
  * starts WebSocket and signals the server to create a WebRTC connection
  */
 async function initClient(secret: string) {
-	const token = await authenticateClient(secret);
+	const token = await authenticate('client', secret);
 	const socket = new WebSocket(`${process.env.P2P_WS_URL}/client/websocket?token=${token}`);
 	socket.addEventListener('open', () => {
 		const peer = new SimplePeer({

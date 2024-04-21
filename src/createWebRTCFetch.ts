@@ -15,8 +15,9 @@ export type WebRTCFetch = Fetch & {
 	destroy(): void;
 };
 
-type WebRTCResponse = {
-	requestId: number;
+type WebRTCConnection = {
+	connectionId: number;
+	url: URL;
 	handled: boolean;
 	readStatus: boolean;
 	readHeaders: boolean;
@@ -29,30 +30,36 @@ type WebRTCResponse = {
 	handle: (error: Error | undefined, response?: Response) => void;
 };
 
-function WebRTCRequestToNativeResponse(webRTCRequest: WebRTCResponse): Response {
-	return new Response(webRTCRequest.stream.readable, {
-		status: webRTCRequest.status,
-		statusText: webRTCRequest.statusText,
-		headers: webRTCRequest.headers,
+function webRTCConnectionToNativeResponse(webRTCConnection: WebRTCConnection): Response {
+	const response = new Response(webRTCConnection.stream.readable, {
+		status: webRTCConnection.status,
+		statusText: webRTCConnection.statusText,
+		headers: webRTCConnection.headers,
 		// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 		// @ts-expect-error
 		duplex: 'half'
 	});
+	Object.defineProperty(response, 'url', {
+		value: `webrtc-http:${webRTCConnection.url.pathname}${webRTCConnection.url.search}`
+	});
+	return response;
 }
 
 export function createWebRTCFetch(channel: RTCDataChannel): WebRTCFetch {
-	const responses = new Map<number, WebRTCResponse>();
+	const responses = new Map<number, WebRTCConnection>();
 	const textEncoder = new TextEncoder();
 	const textDecoder = new TextDecoder();
 
-	function createWebRTCResponse(
-		requestId: number,
+	function createWebRTCConnection(
+		connectionId: number,
+		request: Request,
 		resolve: (response: Response) => void,
 		reject: (error: Error) => void
 	) {
 		const stream = new TransformStream();
-		const webRTCResponse: WebRTCResponse = {
-			requestId,
+		const WebRTCConnection: WebRTCConnection = {
+			connectionId,
+			url: new URL(request.url),
 			handled: false,
 			readStatus: false,
 			readHeaders: false,
@@ -62,11 +69,11 @@ export function createWebRTCFetch(channel: RTCDataChannel): WebRTCFetch {
 			stream,
 			writer: stream.writable.getWriter(),
 			handle(error, response) {
-				if (webRTCResponse.handled) {
+				if (WebRTCConnection.handled) {
 					reject(new TypeError('Response already handled'));
 					return;
 				}
-				webRTCResponse.handled = true;
+				WebRTCConnection.handled = true;
 				if (error) {
 					reject(error);
 				} else if (response) {
@@ -76,53 +83,58 @@ export function createWebRTCFetch(channel: RTCDataChannel): WebRTCFetch {
 				}
 			}
 		};
-		webRTCResponse.timeoutId = setTimeout(
-			() => webRTCResponse.handle(new TypeError('Request timed out')),
+		WebRTCConnection.timeoutId = setTimeout(
+			() => WebRTCConnection.handle(new TypeError('Request timed out')),
 			DEFAULT_TIMEOUT_MS
 		);
-		return webRTCResponse;
+		return WebRTCConnection;
 	}
 
-	function createRequest(resolve: (response: Response) => void, reject: (error: Error) => void) {
-		let requestId = randomUInt32();
-		while (responses.has(requestId)) {
-			requestId = randomUInt32();
+	function createConnection(
+		request: Request,
+		resolve: (response: Response) => void,
+		reject: (error: Error) => void
+	) {
+		let connectionId = randomUInt32();
+		while (responses.has(connectionId)) {
+			connectionId = randomUInt32();
 		}
-		responses.set(requestId, createWebRTCResponse(requestId, resolve, reject));
-		return requestId;
+		const connection = createWebRTCConnection(connectionId, request, resolve, reject);
+		responses.set(connectionId, connection);
+		return connection;
 	}
 
-	async function writeRequest(requestId: number, request: Request) {
+	async function writeRequest(connectionId: number, request: Request) {
 		const url = new URL(request.url);
-		const requestIdBytes = integerToBytes(new Uint8Array(4), requestId);
+		const connectionIdBytes = integerToBytes(new Uint8Array(4), connectionId);
 		channel.send(
 			encodeLine(
 				textEncoder,
-				requestIdBytes,
+				connectionIdBytes,
 				`${request.method} ${url.pathname + url.search} ${PROTOCAL}`
 			)
 		);
 		request.headers.forEach((value, key) => {
-			channel.send(encodeLine(textEncoder, requestIdBytes, `${key}: ${value}`));
+			channel.send(encodeLine(textEncoder, connectionIdBytes, `${key}: ${value}`));
 		});
-		channel.send(encodeLine(textEncoder, requestIdBytes, '\r\n'));
+		channel.send(encodeLine(textEncoder, connectionIdBytes, '\r\n'));
 		if (request.body) {
 			const reader = request.body.getReader();
 			while (true) {
 				const { done, value } = await reader.read();
 				if (value) {
-					channel.send(concatUint8Array(requestIdBytes, value));
+					channel.send(concatUint8Array(connectionIdBytes, value));
 				}
 				if (done) {
 					break;
 				}
 			}
 		}
-		channel.send(encodeLine(textEncoder, requestIdBytes, '\r\n'));
+		channel.send(encodeLine(textEncoder, connectionIdBytes, '\r\n'));
 	}
 
-	async function onResponseLine(requestId: number, line: Uint8Array) {
-		const response = responses.get(requestId);
+	async function onConnectionMessage(connectionId: number, line: Uint8Array) {
+		const response = responses.get(connectionId);
 		if (response) {
 			if (!response.readStatus) {
 				response.readStatus = true;
@@ -132,7 +144,7 @@ export function createWebRTCFetch(channel: RTCDataChannel): WebRTCFetch {
 			} else if (!response.readHeaders) {
 				if (line[0] === R && line[1] === N) {
 					response.readHeaders = true;
-					response.handle(undefined, WebRTCRequestToNativeResponse(response));
+					response.handle(undefined, webRTCConnectionToNativeResponse(response));
 				} else {
 					const [key, value] = textDecoder.decode(line).split(/\:\s+/);
 					response.headers.append(key, value);
@@ -140,7 +152,7 @@ export function createWebRTCFetch(channel: RTCDataChannel): WebRTCFetch {
 			} else {
 				await response.writer.ready;
 				if (line[0] === R && line[1] === N) {
-					responses.delete(requestId);
+					responses.delete(connectionId);
 					clearTimeout(response.timeoutId);
 					response.timeoutId = undefined;
 					await response.writer.close();
@@ -153,15 +165,17 @@ export function createWebRTCFetch(channel: RTCDataChannel): WebRTCFetch {
 
 	function onMessage(event: MessageEvent) {
 		const array = new Uint8Array(event.data);
-		const requestId = bytesToInteger(array);
-		onResponseLine(requestId, array.slice(4));
+		const connectionId = bytesToInteger(array);
+		onConnectionMessage(connectionId, array.slice(4));
 	}
 	channel.addEventListener('message', onMessage);
 
 	function fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-		return new Promise((resolve, reject) =>
-			writeRequest(createRequest(resolve, reject), new Request(input, init))
-		);
+		return new Promise((resolve, reject) => {
+			const request = new Request(input, init);
+			const connection = createConnection(request, resolve, reject);
+			writeRequest(connection.connectionId, request);
+		});
 	}
 
 	fetch.destroy = () => channel.removeEventListener('message', onMessage);
