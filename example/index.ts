@@ -6,12 +6,23 @@ import { createWebRTCFetch, createWebRTCServer } from '../src';
  * @returns {string}
  */
 async function authenticate(type: 'server' | 'client', secret: string) {
+	const body: { id?: string; password: string } = {
+		password: secret
+	};
+	const headers: HeadersInit = {
+		'Content-Type': 'application/json'
+	};
+	if (type === 'client') {
+		body.id = 'webrtc-example';
+	} else {
+		headers.Authorization = `Bearer ${process.env.JWT_TOKEN}`;
+	}
 	const res = await fetch(`${process.env.P2P_API_URL}/${type}`, {
 		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json'
-		},
-		body: JSON.stringify({ id: 'webrtc-example', password: secret })
+		headers,
+		credentials: 'same-origin',
+		mode: 'cors',
+		body: JSON.stringify(body)
 	});
 	if (res.status >= 400) {
 		throw new Error('failed to authenticate');
