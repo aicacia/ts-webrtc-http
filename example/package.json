@@ -3,7 +3,6 @@
 	"private": true,
 	"source": "index.html",
 	"scripts": {
-		"build": "parcel build",
-		"start": "parcel serve"
+		"start": "npx parcel serve"
 	}
 }

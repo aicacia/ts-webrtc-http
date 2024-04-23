@@ -19,7 +19,7 @@ jobs:
 
       - run: npm install -g pnpm@8
       - run: pnpm install
-      - run: cd example && NODE_ENV=production pnpm run build
+      - run: cd example && NODE_ENV=production npx parcel build --public-url './ts-webrtc-fetch' ./index.html
 
       - uses: peaceiris/actions-gh-pages@v3
         with:
