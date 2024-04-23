@@ -53,38 +53,6 @@ export function createWebRTCServer(
 	const textEncoder = new TextEncoder();
 	const textDecoder = new TextDecoder();
 
-	async function onConnectionMessage(requestId: number, line: Uint8Array) {
-		const request = requests.get(requestId);
-		if (!request) {
-			const [method, path, version] = textDecoder.decode(line).split(/\s+/);
-			if (method && path && version) {
-				const request = createWebRTCConnection(method, path);
-				requests.set(requestId, request);
-				request.timeoutId = setTimeout(() => requests.delete(requestId), DEFAULT_TIMEOUT_MS);
-			}
-		} else {
-			if (!request.readHeaders) {
-				if (line[0] === R && line[1] === N) {
-					request.readHeaders = true;
-					handle(requestId, webRTCConnectionToNativeRequest(request));
-				} else {
-					const [key, value] = textDecoder.decode(line).split(/\:\s+/, 2);
-					request.headers.append(key, value);
-				}
-			} else {
-				await request.writer.ready;
-				if (line[0] === R && line[1] === N) {
-					request.writer.close();
-					requests.delete(requestId);
-					clearTimeout(request.timeoutId);
-					request.timeoutId = undefined;
-				} else {
-					request.writer.write(line);
-				}
-			}
-		}
-	}
-
 	async function writeResponse(requestId: number, response: Response) {
 		const requestIdBytes = integerToBytes(new Uint8Array(4), requestId);
 		channel.send(
@@ -118,10 +86,42 @@ export function createWebRTCServer(
 		await writeResponse(requestId, response);
 	}
 
-	function onMessage(event: MessageEvent) {
+	async function onConnectionMessage(requestId: number, line: Uint8Array) {
+		const request = requests.get(requestId);
+		if (!request) {
+			const [method, path, version] = textDecoder.decode(line).split(/\s+/);
+			if (method && path && version) {
+				const request = createWebRTCConnection(method, path);
+				requests.set(requestId, request);
+				request.timeoutId = setTimeout(() => requests.delete(requestId), DEFAULT_TIMEOUT_MS);
+			}
+		} else {
+			if (!request.readHeaders) {
+				if (line[0] === R && line[1] === N) {
+					request.readHeaders = true;
+					await handle(requestId, webRTCConnectionToNativeRequest(request));
+				} else {
+					const [key, value] = textDecoder.decode(line).split(/\:\s+/, 2);
+					request.headers.append(key, value);
+				}
+			} else {
+				await request.writer.ready;
+				if (line[0] === R && line[1] === N) {
+					requests.delete(requestId);
+					clearTimeout(request.timeoutId);
+					request.timeoutId = undefined;
+					await request.writer.close();
+				} else {
+					await request.writer.write(line);
+				}
+			}
+		}
+	}
+
+	async function onMessage(event: MessageEvent) {
 		const array = new Uint8Array(event.data);
 		const requestId = bytesToInteger(array);
-		onConnectionMessage(requestId, array.slice(4));
+		await onConnectionMessage(requestId, array.slice(4));
 	}
 	channel.addEventListener('message', onMessage);
 

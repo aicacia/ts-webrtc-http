@@ -163,18 +163,18 @@ export function createWebRTCFetch(channel: RTCDataChannel): WebRTCFetch {
 		}
 	}
 
-	function onMessage(event: MessageEvent) {
+	async function onMessage(event: MessageEvent) {
 		const array = new Uint8Array(event.data);
 		const connectionId = bytesToInteger(array);
-		onConnectionMessage(connectionId, array.slice(4));
+		await onConnectionMessage(connectionId, array.slice(4));
 	}
 	channel.addEventListener('message', onMessage);
 
 	function fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-		return new Promise((resolve, reject) => {
+		return new Promise(async (resolve, reject) => {
 			const request = new Request(input, init);
 			const connection = createConnection(request, resolve, reject);
-			writeRequest(connection.connectionId, request);
+			await writeRequest(connection.connectionId, request);
 		});
 	}
 
