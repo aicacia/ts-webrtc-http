@@ -29,11 +29,11 @@ async function authenticate(type: 'server' | 'client', secret: string) {
 	}
 	return await res.text();
 }
-const peers: { [id: string]: SimplePeer.Instance } = {};
 /**
  * starts WebSocket and listens for new clients, creates a WebRTC connection for new clients
  */
 async function initServer(secret: string) {
+	const peers: { [id: string]: SimplePeer.Instance } = {};
 	const token = await authenticate('server', secret);
 	const socket = new WebSocket(`${process.env.P2P_WS_URL}/server/websocket?token=${token}`);
 	socket.addEventListener('open', () => {
