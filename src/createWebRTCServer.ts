@@ -14,7 +14,7 @@ interface WebRTCConnection {
 	method: string;
 	path: string;
 	headers: Headers;
-	stream: TransformStream<Uint8Array>;
+	stream: TransformStream<Uint8Array, Uint8Array>;
 	writer: WritableStreamDefaultWriter<Uint8Array>;
 	timeoutId?: ReturnType<typeof setTimeout>;
 }
