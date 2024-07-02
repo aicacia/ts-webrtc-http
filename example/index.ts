@@ -90,7 +90,7 @@ async function initServer() {
 async function initClient() {
 	const token = await authenticate("client");
 	const socket = new WebSocket(
-		`${process.env.P2P_WS_URL}/client/websocket?token=${token}`,
+		`${process.env.P2P_WS_URL}/client/websocket?token=${token}&payload=${encodeURIComponent(JSON.stringify({ name: "test" }))}`,
 	);
 	socket.addEventListener("open", async () => {
 		const peer = new Peer({
