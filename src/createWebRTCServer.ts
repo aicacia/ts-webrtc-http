@@ -1,4 +1,4 @@
-import { bytesToInteger, integerToBytes } from '@aicacia/hash';
+import { bytesToInteger, integerToBytes } from "@aicacia/hash";
 import {
 	DEFAULT_TIMEOUT_MS,
 	N,
@@ -6,8 +6,8 @@ import {
 	R,
 	concatUint8Array,
 	encodeLine,
-	statusCodeToStatusText
-} from './utils';
+	statusCodeToStatusText,
+} from "./utils";
 
 interface WebRTCConnection {
 	readHeaders: boolean;
@@ -19,7 +19,10 @@ interface WebRTCConnection {
 	timeoutId?: ReturnType<typeof setTimeout>;
 }
 
-function createWebRTCConnection(method: string, path: string): WebRTCConnection {
+function createWebRTCConnection(
+	method: string,
+	path: string,
+): WebRTCConnection {
 	const stream = new TransformStream<Uint8Array>();
 	return {
 		readHeaders: false,
@@ -27,27 +30,29 @@ function createWebRTCConnection(method: string, path: string): WebRTCConnection 
 		path,
 		headers: new Headers(),
 		stream,
-		writer: stream.writable.getWriter()
+		writer: stream.writable.getWriter(),
 	};
 }
 
-function webRTCConnectionToNativeRequest(webRTCConnection: WebRTCConnection): Request {
+function webRTCConnectionToNativeRequest(
+	webRTCConnection: WebRTCConnection,
+): Request {
 	return new Request(`webrtc-http:${webRTCConnection.path}`, {
 		method: webRTCConnection.method,
 		headers: webRTCConnection.headers,
 		body:
-			webRTCConnection.method === 'GET' || webRTCConnection.method === 'HEAD'
+			webRTCConnection.method === "GET" || webRTCConnection.method === "HEAD"
 				? null
 				: webRTCConnection.stream.readable,
 		// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 		// @ts-expect-error
-		duplex: 'half'
+		duplex: "half",
 	});
 }
 
 export function createWebRTCServer(
 	channel: RTCDataChannel,
-	handler: (request: Request) => Promise<Response> | Response
+	handler: (request: Request) => Promise<Response> | Response,
 ) {
 	const requests = new Map<number, WebRTCConnection>();
 	const textEncoder = new TextEncoder();
@@ -59,13 +64,13 @@ export function createWebRTCServer(
 			encodeLine(
 				textEncoder,
 				requestIdBytes,
-				`${PROTOCAL} ${response.status} ${statusCodeToStatusText(response.status)}`
-			)
+				`${PROTOCAL} ${response.status} ${statusCodeToStatusText(response.status)}`,
+			),
 		);
 		response.headers.forEach((value, key) => {
 			channel.send(encodeLine(textEncoder, requestIdBytes, `${key}: ${value}`));
 		});
-		channel.send(encodeLine(textEncoder, requestIdBytes, '\r\n'));
+		channel.send(encodeLine(textEncoder, requestIdBytes, "\r\n"));
 		if (response.body) {
 			const reader = response.body.getReader();
 			while (true) {
@@ -78,7 +83,7 @@ export function createWebRTCServer(
 				}
 			}
 		}
-		channel.send(encodeLine(textEncoder, requestIdBytes, '\r\n'));
+		channel.send(encodeLine(textEncoder, requestIdBytes, "\r\n"));
 	}
 
 	async function handle(requestId: number, request: Request) {
@@ -93,7 +98,10 @@ export function createWebRTCServer(
 			if (method && path && version) {
 				const request = createWebRTCConnection(method, path);
 				requests.set(requestId, request);
-				request.timeoutId = setTimeout(() => requests.delete(requestId), DEFAULT_TIMEOUT_MS);
+				request.timeoutId = setTimeout(
+					() => requests.delete(requestId),
+					DEFAULT_TIMEOUT_MS,
+				);
 			}
 		} else {
 			if (!request.readHeaders) {
@@ -123,9 +131,9 @@ export function createWebRTCServer(
 		const requestId = bytesToInteger(array);
 		await onConnectionMessage(requestId, array.slice(4));
 	}
-	channel.addEventListener('message', onMessage);
+	channel.addEventListener("message", onMessage);
 
 	return () => {
-		channel.removeEventListener('message', onMessage);
+		channel.removeEventListener("message", onMessage);
 	};
 }

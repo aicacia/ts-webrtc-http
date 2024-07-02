@@ -1,4 +1,4 @@
-import { bytesToInteger, integerToBytes } from '@aicacia/hash';
+import { bytesToInteger, integerToBytes } from "@aicacia/hash";
 import {
 	DEFAULT_TIMEOUT_MS,
 	N,
@@ -6,8 +6,8 @@ import {
 	R,
 	concatUint8Array,
 	encodeLine,
-	randomUInt32
-} from './utils';
+	randomUInt32,
+} from "./utils";
 
 type Fetch = typeof fetch;
 
@@ -30,17 +30,19 @@ type WebRTCConnection = {
 	handle: (error: Error | undefined, response?: Response) => void;
 };
 
-function webRTCConnectionToNativeResponse(webRTCConnection: WebRTCConnection): Response {
+function webRTCConnectionToNativeResponse(
+	webRTCConnection: WebRTCConnection,
+): Response {
 	const response = new Response(webRTCConnection.stream.readable, {
 		status: webRTCConnection.status,
 		statusText: webRTCConnection.statusText,
 		headers: webRTCConnection.headers,
 		// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 		// @ts-expect-error
-		duplex: 'half'
+		duplex: "half",
 	});
-	Object.defineProperty(response, 'url', {
-		value: `webrtc-http:${webRTCConnection.url.pathname}${webRTCConnection.url.search}`
+	Object.defineProperty(response, "url", {
+		value: `webrtc-http:${webRTCConnection.url.pathname}${webRTCConnection.url.search}`,
 	});
 	return response;
 }
@@ -54,7 +56,7 @@ export function createWebRTCFetch(channel: RTCDataChannel): WebRTCFetch {
 		connectionId: number,
 		request: Request,
 		resolve: (response: Response) => void,
-		reject: (error: Error) => void
+		reject: (error: Error) => void,
 	) {
 		const stream = new TransformStream();
 		const WebRTCConnection: WebRTCConnection = {
@@ -65,12 +67,12 @@ export function createWebRTCFetch(channel: RTCDataChannel): WebRTCFetch {
 			readHeaders: false,
 			headers: new Headers(),
 			status: 200,
-			statusText: '',
+			statusText: "",
 			stream,
 			writer: stream.writable.getWriter(),
 			handle(error, response) {
 				if (WebRTCConnection.handled) {
-					reject(new TypeError('Response already handled'));
+					reject(new TypeError("Response already handled"));
 					return;
 				}
 				WebRTCConnection.handled = true;
@@ -79,13 +81,13 @@ export function createWebRTCFetch(channel: RTCDataChannel): WebRTCFetch {
 				} else if (response) {
 					resolve(response);
 				} else {
-					reject(new TypeError('No response'));
+					reject(new TypeError("No response"));
 				}
-			}
+			},
 		};
 		WebRTCConnection.timeoutId = setTimeout(
-			() => WebRTCConnection.handle(new TypeError('Request timed out')),
-			DEFAULT_TIMEOUT_MS
+			() => WebRTCConnection.handle(new TypeError("Request timed out")),
+			DEFAULT_TIMEOUT_MS,
 		);
 		return WebRTCConnection;
 	}
@@ -93,13 +95,18 @@ export function createWebRTCFetch(channel: RTCDataChannel): WebRTCFetch {
 	function createConnection(
 		request: Request,
 		resolve: (response: Response) => void,
-		reject: (error: Error) => void
+		reject: (error: Error) => void,
 	) {
 		let connectionId = randomUInt32();
 		while (responses.has(connectionId)) {
 			connectionId = randomUInt32();
 		}
-		const connection = createWebRTCConnection(connectionId, request, resolve, reject);
+		const connection = createWebRTCConnection(
+			connectionId,
+			request,
+			resolve,
+			reject,
+		);
 		responses.set(connectionId, connection);
 		return connection;
 	}
@@ -111,13 +118,15 @@ export function createWebRTCFetch(channel: RTCDataChannel): WebRTCFetch {
 			encodeLine(
 				textEncoder,
 				connectionIdBytes,
-				`${request.method} ${url.pathname + url.search} ${PROTOCAL}`
-			)
+				`${request.method} ${url.pathname + url.search} ${PROTOCAL}`,
+			),
 		);
 		request.headers.forEach((value, key) => {
-			channel.send(encodeLine(textEncoder, connectionIdBytes, `${key}: ${value}`));
+			channel.send(
+				encodeLine(textEncoder, connectionIdBytes, `${key}: ${value}`),
+			);
 		});
-		channel.send(encodeLine(textEncoder, connectionIdBytes, '\r\n'));
+		channel.send(encodeLine(textEncoder, connectionIdBytes, "\r\n"));
 		if (request.body) {
 			const reader = request.body.getReader();
 			while (true) {
@@ -130,7 +139,7 @@ export function createWebRTCFetch(channel: RTCDataChannel): WebRTCFetch {
 				}
 			}
 		}
-		channel.send(encodeLine(textEncoder, connectionIdBytes, '\r\n'));
+		channel.send(encodeLine(textEncoder, connectionIdBytes, "\r\n"));
 	}
 
 	async function onConnectionMessage(connectionId: number, line: Uint8Array) {
@@ -138,13 +147,18 @@ export function createWebRTCFetch(channel: RTCDataChannel): WebRTCFetch {
 		if (response) {
 			if (!response.readStatus) {
 				response.readStatus = true;
-				const [_version, status, statusText] = textDecoder.decode(line).split(/\s+/, 3);
-				response.status = parseInt(status);
+				const [_version, status, statusText] = textDecoder
+					.decode(line)
+					.split(/\s+/, 3);
+				response.status = Number.parseInt(status);
 				response.statusText = statusText;
 			} else if (!response.readHeaders) {
 				if (line[0] === R && line[1] === N) {
 					response.readHeaders = true;
-					response.handle(undefined, webRTCConnectionToNativeResponse(response));
+					response.handle(
+						undefined,
+						webRTCConnectionToNativeResponse(response),
+					);
 				} else {
 					const [key, value] = textDecoder.decode(line).split(/\:\s+/);
 					response.headers.append(key, value);
@@ -168,17 +182,20 @@ export function createWebRTCFetch(channel: RTCDataChannel): WebRTCFetch {
 		const connectionId = bytesToInteger(array);
 		await onConnectionMessage(connectionId, array.slice(4));
 	}
-	channel.addEventListener('message', onMessage);
+	channel.addEventListener("message", onMessage);
 
-	function fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-		return new Promise(async (resolve, reject) => {
+	function fetch(
+		input: RequestInfo | URL,
+		init?: RequestInit,
+	): Promise<Response> {
+		return new Promise((resolve, reject) => {
 			const request = new Request(input, init);
 			const connection = createConnection(request, resolve, reject);
-			await writeRequest(connection.connectionId, request);
+			writeRequest(connection.connectionId, request);
 		});
 	}
 
-	fetch.destroy = () => channel.removeEventListener('message', onMessage);
+	fetch.destroy = () => channel.removeEventListener("message", onMessage);
 
 	return fetch;
 }
