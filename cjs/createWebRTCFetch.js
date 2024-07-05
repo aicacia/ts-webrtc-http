@@ -11,10 +11,10 @@ function webRTCConnectionToNativeResponse(webRTCConnection) {
         headers: webRTCConnection.headers,
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-expect-error
-        duplex: 'half'
+        duplex: "half",
     });
-    Object.defineProperty(response, 'url', {
-        value: `webrtc-http:${webRTCConnection.url.pathname}${webRTCConnection.url.search}`
+    Object.defineProperty(response, "url", {
+        value: `webrtc-http:${webRTCConnection.url.pathname}${webRTCConnection.url.search}`,
     });
     return response;
 }
@@ -32,12 +32,12 @@ function createWebRTCFetch(channel) {
             readHeaders: false,
             headers: new Headers(),
             status: 200,
-            statusText: '',
+            statusText: "",
             stream,
             writer: stream.writable.getWriter(),
             handle(error, response) {
                 if (WebRTCConnection.handled) {
-                    reject(new TypeError('Response already handled'));
+                    reject(new TypeError("Response already handled"));
                     return;
                 }
                 WebRTCConnection.handled = true;
@@ -48,11 +48,11 @@ function createWebRTCFetch(channel) {
                     resolve(response);
                 }
                 else {
-                    reject(new TypeError('No response'));
+                    reject(new TypeError("No response"));
                 }
-            }
+            },
         };
-        WebRTCConnection.timeoutId = setTimeout(() => WebRTCConnection.handle(new TypeError('Request timed out')), utils_1.DEFAULT_TIMEOUT_MS);
+        WebRTCConnection.timeoutId = setTimeout(() => WebRTCConnection.handle(new TypeError("Request timed out")), utils_1.DEFAULT_TIMEOUT_MS);
         return WebRTCConnection;
     }
     function createConnection(request, resolve, reject) {
@@ -72,7 +72,7 @@ function createWebRTCFetch(channel) {
             request.headers.forEach((value, key) => {
                 channel.send((0, utils_1.encodeLine)(textEncoder, connectionIdBytes, `${key}: ${value}`));
             });
-            channel.send((0, utils_1.encodeLine)(textEncoder, connectionIdBytes, '\r\n'));
+            channel.send((0, utils_1.encodeLine)(textEncoder, connectionIdBytes, "\r\n"));
             if (request.body) {
                 const reader = request.body.getReader();
                 while (true) {
@@ -85,7 +85,7 @@ function createWebRTCFetch(channel) {
                     }
                 }
             }
-            channel.send((0, utils_1.encodeLine)(textEncoder, connectionIdBytes, '\r\n'));
+            channel.send((0, utils_1.encodeLine)(textEncoder, connectionIdBytes, "\r\n"));
         });
     }
     function onConnectionMessage(connectionId, line) {
@@ -94,8 +94,10 @@ function createWebRTCFetch(channel) {
             if (response) {
                 if (!response.readStatus) {
                     response.readStatus = true;
-                    const [_version, status, statusText] = textDecoder.decode(line).split(/\s+/, 3);
-                    response.status = parseInt(status);
+                    const [_version, status, statusText] = textDecoder
+                        .decode(line)
+                        .split(/\s+/, 3);
+                    response.status = Number.parseInt(status);
                     response.statusText = statusText;
                 }
                 else if (!response.readHeaders) {
@@ -130,15 +132,15 @@ function createWebRTCFetch(channel) {
             yield onConnectionMessage(connectionId, array.slice(4));
         });
     }
-    channel.addEventListener('message', onMessage);
+    channel.addEventListener("message", onMessage);
     function fetch(input, init) {
-        return new Promise((resolve, reject) => tslib_1.__awaiter(this, void 0, void 0, function* () {
+        return new Promise((resolve, reject) => {
             const request = new Request(input, init);
             const connection = createConnection(request, resolve, reject);
-            yield writeRequest(connection.connectionId, request);
-        }));
+            writeRequest(connection.connectionId, request);
+        });
     }
-    fetch.destroy = () => channel.removeEventListener('message', onMessage);
+    fetch.destroy = () => channel.removeEventListener("message", onMessage);
     return fetch;
 }
 exports.createWebRTCFetch = createWebRTCFetch;

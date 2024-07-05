@@ -12,19 +12,19 @@ function createWebRTCConnection(method, path) {
         path,
         headers: new Headers(),
         stream,
-        writer: stream.writable.getWriter()
+        writer: stream.writable.getWriter(),
     };
 }
 function webRTCConnectionToNativeRequest(webRTCConnection) {
     return new Request(`webrtc-http:${webRTCConnection.path}`, {
         method: webRTCConnection.method,
         headers: webRTCConnection.headers,
-        body: webRTCConnection.method === 'GET' || webRTCConnection.method === 'HEAD'
+        body: webRTCConnection.method === "GET" || webRTCConnection.method === "HEAD"
             ? null
             : webRTCConnection.stream.readable,
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-expect-error
-        duplex: 'half'
+        duplex: "half",
     });
 }
 function createWebRTCServer(channel, handler) {
@@ -38,7 +38,7 @@ function createWebRTCServer(channel, handler) {
             response.headers.forEach((value, key) => {
                 channel.send((0, utils_1.encodeLine)(textEncoder, requestIdBytes, `${key}: ${value}`));
             });
-            channel.send((0, utils_1.encodeLine)(textEncoder, requestIdBytes, '\r\n'));
+            channel.send((0, utils_1.encodeLine)(textEncoder, requestIdBytes, "\r\n"));
             if (response.body) {
                 const reader = response.body.getReader();
                 while (true) {
@@ -51,7 +51,7 @@ function createWebRTCServer(channel, handler) {
                     }
                 }
             }
-            channel.send((0, utils_1.encodeLine)(textEncoder, requestIdBytes, '\r\n'));
+            channel.send((0, utils_1.encodeLine)(textEncoder, requestIdBytes, "\r\n"));
         });
     }
     function handle(requestId, request) {
@@ -104,9 +104,9 @@ function createWebRTCServer(channel, handler) {
             yield onConnectionMessage(requestId, array.slice(4));
         });
     }
-    channel.addEventListener('message', onMessage);
+    channel.addEventListener("message", onMessage);
     return () => {
-        channel.removeEventListener('message', onMessage);
+        channel.removeEventListener("message", onMessage);
     };
 }
 exports.createWebRTCServer = createWebRTCServer;

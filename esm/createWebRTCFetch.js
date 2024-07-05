@@ -1,5 +1,5 @@
-import { bytesToInteger, integerToBytes } from '@aicacia/hash';
-import { DEFAULT_TIMEOUT_MS, N, PROTOCAL, R, concatUint8Array, encodeLine, randomUInt32 } from './utils';
+import { bytesToInteger, integerToBytes } from "@aicacia/hash";
+import { DEFAULT_TIMEOUT_MS, N, PROTOCAL, R, concatUint8Array, encodeLine, randomUInt32, } from "./utils";
 function webRTCConnectionToNativeResponse(webRTCConnection) {
     const response = new Response(webRTCConnection.stream.readable, {
         status: webRTCConnection.status,
@@ -7,10 +7,10 @@ function webRTCConnectionToNativeResponse(webRTCConnection) {
         headers: webRTCConnection.headers,
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-expect-error
-        duplex: 'half'
+        duplex: "half",
     });
-    Object.defineProperty(response, 'url', {
-        value: `webrtc-http:${webRTCConnection.url.pathname}${webRTCConnection.url.search}`
+    Object.defineProperty(response, "url", {
+        value: `webrtc-http:${webRTCConnection.url.pathname}${webRTCConnection.url.search}`,
     });
     return response;
 }
@@ -28,12 +28,12 @@ export function createWebRTCFetch(channel) {
             readHeaders: false,
             headers: new Headers(),
             status: 200,
-            statusText: '',
+            statusText: "",
             stream,
             writer: stream.writable.getWriter(),
             handle(error, response) {
                 if (WebRTCConnection.handled) {
-                    reject(new TypeError('Response already handled'));
+                    reject(new TypeError("Response already handled"));
                     return;
                 }
                 WebRTCConnection.handled = true;
@@ -44,11 +44,11 @@ export function createWebRTCFetch(channel) {
                     resolve(response);
                 }
                 else {
-                    reject(new TypeError('No response'));
+                    reject(new TypeError("No response"));
                 }
-            }
+            },
         };
-        WebRTCConnection.timeoutId = setTimeout(() => WebRTCConnection.handle(new TypeError('Request timed out')), DEFAULT_TIMEOUT_MS);
+        WebRTCConnection.timeoutId = setTimeout(() => WebRTCConnection.handle(new TypeError("Request timed out")), DEFAULT_TIMEOUT_MS);
         return WebRTCConnection;
     }
     function createConnection(request, resolve, reject) {
@@ -67,7 +67,7 @@ export function createWebRTCFetch(channel) {
         request.headers.forEach((value, key) => {
             channel.send(encodeLine(textEncoder, connectionIdBytes, `${key}: ${value}`));
         });
-        channel.send(encodeLine(textEncoder, connectionIdBytes, '\r\n'));
+        channel.send(encodeLine(textEncoder, connectionIdBytes, "\r\n"));
         if (request.body) {
             const reader = request.body.getReader();
             while (true) {
@@ -80,15 +80,17 @@ export function createWebRTCFetch(channel) {
                 }
             }
         }
-        channel.send(encodeLine(textEncoder, connectionIdBytes, '\r\n'));
+        channel.send(encodeLine(textEncoder, connectionIdBytes, "\r\n"));
     }
     async function onConnectionMessage(connectionId, line) {
         const response = responses.get(connectionId);
         if (response) {
             if (!response.readStatus) {
                 response.readStatus = true;
-                const [_version, status, statusText] = textDecoder.decode(line).split(/\s+/, 3);
-                response.status = parseInt(status);
+                const [_version, status, statusText] = textDecoder
+                    .decode(line)
+                    .split(/\s+/, 3);
+                response.status = Number.parseInt(status);
                 response.statusText = statusText;
             }
             else if (!response.readHeaders) {
@@ -120,14 +122,14 @@ export function createWebRTCFetch(channel) {
         const connectionId = bytesToInteger(array);
         await onConnectionMessage(connectionId, array.slice(4));
     }
-    channel.addEventListener('message', onMessage);
+    channel.addEventListener("message", onMessage);
     function fetch(input, init) {
-        return new Promise(async (resolve, reject) => {
+        return new Promise((resolve, reject) => {
             const request = new Request(input, init);
             const connection = createConnection(request, resolve, reject);
-            await writeRequest(connection.connectionId, request);
+            writeRequest(connection.connectionId, request);
         });
     }
-    fetch.destroy = () => channel.removeEventListener('message', onMessage);
+    fetch.destroy = () => channel.removeEventListener("message", onMessage);
     return fetch;
 }

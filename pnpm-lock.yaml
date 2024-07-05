@@ -16,8 +16,8 @@ importers:
         version: 0.2.14(tslib@2.6.2)
     devDependencies:
       '@aicacia/simplepeer':
-        specifier: git://github.com/aicacia/ts-simplepeer.git#63abb8b
-        version: https://codeload.github.com/aicacia/ts-simplepeer/tar.gz/63abb8b(tslib@2.6.2)
+        specifier: git://github.com/aicacia/ts-simplepeer.git#4ef3fa4
+        version: https://codeload.github.com/aicacia/ts-simplepeer/tar.gz/4ef3fa4(tslib@2.6.2)
       '@biomejs/biome':
         specifier: '1'
         version: 1.8.3
@@ -100,8 +100,8 @@ packages:
     peerDependencies:
       tslib: '2'
 
-  '@aicacia/simplepeer@https://codeload.github.com/aicacia/ts-simplepeer/tar.gz/63abb8b':
-    resolution: {tarball: https://codeload.github.com/aicacia/ts-simplepeer/tar.gz/63abb8b}
+  '@aicacia/simplepeer@https://codeload.github.com/aicacia/ts-simplepeer/tar.gz/4ef3fa4':
+    resolution: {tarball: https://codeload.github.com/aicacia/ts-simplepeer/tar.gz/4ef3fa4}
     version: 0.1.0
     peerDependencies:
       tslib: '2'
@@ -2373,7 +2373,7 @@ snapshots:
       '@aicacia/option': 0.1.2(tslib@2.6.2)
       tslib: 2.6.2
 
-  '@aicacia/simplepeer@https://codeload.github.com/aicacia/ts-simplepeer/tar.gz/63abb8b(tslib@2.6.2)':
+  '@aicacia/simplepeer@https://codeload.github.com/aicacia/ts-simplepeer/tar.gz/4ef3fa4(tslib@2.6.2)':
     dependencies:
       eventemitter3: 5.0.1
       tslib: 2.6.2
@@ -2661,13 +2661,15 @@ snapshots:
     transitivePeerDependencies:
       - '@parcel/core'
 
-  '@parcel/cache@2.12.0(@parcel/core@2.12.0(@swc/helpers@0.5.6))':
+  '@parcel/cache@2.12.0(@parcel/core@2.12.0(@swc/helpers@0.5.6))(@swc/helpers@0.5.6)':
     dependencies:
       '@parcel/core': 2.12.0(@swc/helpers@0.5.6)
       '@parcel/fs': 2.12.0(@parcel/core@2.12.0(@swc/helpers@0.5.6))(@swc/helpers@0.5.6)
       '@parcel/logger': 2.12.0
       '@parcel/utils': 2.12.0
       lmdb: 2.8.5
+    transitivePeerDependencies:
+      - '@swc/helpers'
 
   '@parcel/codeframe@2.12.0':
     dependencies:
@@ -2727,7 +2729,7 @@ snapshots:
   '@parcel/core@2.12.0(@swc/helpers@0.5.6)':
     dependencies:
       '@mischnic/json-sourcemap': 0.1.1
-      '@parcel/cache': 2.12.0(@parcel/core@2.12.0(@swc/helpers@0.5.6))
+      '@parcel/cache': 2.12.0(@parcel/core@2.12.0(@swc/helpers@0.5.6))(@swc/helpers@0.5.6)
       '@parcel/diagnostic': 2.12.0
       '@parcel/events': 2.12.0
       '@parcel/fs': 2.12.0(@parcel/core@2.12.0(@swc/helpers@0.5.6))(@swc/helpers@0.5.6)
@@ -3142,7 +3144,7 @@ snapshots:
 
   '@parcel/types@2.12.0(@parcel/core@2.12.0(@swc/helpers@0.5.6))(@swc/helpers@0.5.6)':
     dependencies:
-      '@parcel/cache': 2.12.0(@parcel/core@2.12.0(@swc/helpers@0.5.6))
+      '@parcel/cache': 2.12.0(@parcel/core@2.12.0(@swc/helpers@0.5.6))(@swc/helpers@0.5.6)
       '@parcel/diagnostic': 2.12.0
       '@parcel/fs': 2.12.0(@parcel/core@2.12.0(@swc/helpers@0.5.6))(@swc/helpers@0.5.6)
       '@parcel/package-manager': 2.12.0(@parcel/core@2.12.0(@swc/helpers@0.5.6))(@swc/helpers@0.5.6)
