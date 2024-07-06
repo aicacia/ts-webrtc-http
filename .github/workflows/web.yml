@@ -10,7 +10,7 @@ jobs:
     env:
       P2P_API_URL: https://p2p.aicacia.com
       P2P_WS_URL: wss://p2p.aicacia.com
-      JWT_TOKEN: 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJQMlAiLCJpYXQiOjE3MTM3Nzk2MjksImV4cCI6bnVsbCwiYXVkIjoiUDJQIiwic3ViIjoid2VicnRjLWV4YW1wbGUifQ.HNF2HiiU2MzW_2uVFAh8IvRcbw6QU3Eerv91dvp164A'
+      JWT_TOKEN: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJQMlAiLCJpYXQiOjE3MTM3Nzk2MjksImV4cCI6bnVsbCwiYXVkIjoiUDJQIiwic3ViIjoid2VicnRjLWV4YW1wbGUifQ.HNF2HiiU2MzW_2uVFAh8IvRcbw6QU3Eerv91dvp164A"
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v1
@@ -20,7 +20,7 @@ jobs:
       - run: npm install -g pnpm@8
       - run: pnpm install
       - working-directory: ./example
-        run: NODE_ENV=production npx parcel build --public-url '/ts-webrtc-fetch' ./index.html
+        run: NODE_ENV=production npx parcel build --public-url '/ts-webrtchttp' ./index.html
 
       - uses: peaceiris/actions-gh-pages@v3
         with:

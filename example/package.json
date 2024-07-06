@@ -1,8 +1,8 @@
 {
-	"name": "@aicacia/webrtc-fetch",
-	"private": true,
-	"source": "index.html",
-	"scripts": {
-		"start": "npx parcel serve"
-	}
+  "name": "@aicacia/webrtchttp",
+  "private": true,
+  "source": "index.html",
+  "scripts": {
+    "start": "npx parcel serve"
+  }
 }
