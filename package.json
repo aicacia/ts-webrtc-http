@@ -45,7 +45,7 @@
     "@rollup/plugin-commonjs": "26",
     "@rollup/plugin-node-resolve": "15",
     "@rollup/plugin-typescript": "11",
-    "@aicacia/peer": "git://github.com/aicacia/ts-peer.git#5239846",
+    "@aicacia/peer": "git://github.com/aicacia/ts-peer.git#c40d109",
     "@types/tape": "5",
     "events": "3",
     "husky": "9",

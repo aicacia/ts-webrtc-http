@@ -16,8 +16,8 @@ importers:
         version: 0.2.14(tslib@2.6.2)
     devDependencies:
       '@aicacia/peer':
-        specifier: git://github.com/aicacia/ts-peer.git#5239846
-        version: https://codeload.github.com/aicacia/ts-peer/tar.gz/5239846(tslib@2.6.2)
+        specifier: git://github.com/aicacia/ts-peer.git#c40d109
+        version: https://codeload.github.com/aicacia/ts-peer/tar.gz/c40d109(tslib@2.6.2)
       '@biomejs/biome':
         specifier: '1'
         version: 1.8.3
@@ -95,8 +95,8 @@ packages:
     peerDependencies:
       tslib: '2'
 
-  '@aicacia/peer@https://codeload.github.com/aicacia/ts-peer/tar.gz/5239846':
-    resolution: {tarball: https://codeload.github.com/aicacia/ts-peer/tar.gz/5239846}
+  '@aicacia/peer@https://codeload.github.com/aicacia/ts-peer/tar.gz/c40d109':
+    resolution: {tarball: https://codeload.github.com/aicacia/ts-peer/tar.gz/c40d109}
     version: 0.1.0
     peerDependencies:
       tslib: '2'
@@ -2366,7 +2366,7 @@ snapshots:
     dependencies:
       tslib: 2.6.2
 
-  '@aicacia/peer@https://codeload.github.com/aicacia/ts-peer/tar.gz/5239846(tslib@2.6.2)':
+  '@aicacia/peer@https://codeload.github.com/aicacia/ts-peer/tar.gz/c40d109(tslib@2.6.2)':
     dependencies:
       eventemitter3: 5.0.1
       tslib: 2.6.2
