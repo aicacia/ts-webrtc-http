@@ -1,201 +1,84 @@
 import { bytesToInteger, integerToBytes } from "@aicacia/hash";
 import {
-	DEFAULT_TIMEOUT_MS,
-	N,
-	PROTOCAL,
-	R,
-	concatUint8Array,
-	encodeLine,
-	randomUInt32,
+  bufferedWritableStream,
+  DEFAULT_MAX_MESSAGE_SIZE,
+  randomUInt32,
+  writableStreamFromChannel,
 } from "./utils";
+import {
+  HTTPRequest,
+  parseHTTPResponse,
+  writeHTTPRequestOrResponse,
+} from "./HTTP";
 
 type Fetch = typeof fetch;
 
 export type WebRTCFetch = Fetch & {
-	destroy(): void;
+  destroy(): void;
 };
 
 type WebRTCConnection = {
-	connectionId: number;
-	url: URL;
-	handled: boolean;
-	readStatus: boolean;
-	readHeaders: boolean;
-	headers: Headers;
-	status: number;
-	statusText: string;
-	stream: TransformStream;
-	writer: WritableStreamDefaultWriter<Uint8Array>;
-	timeoutId?: ReturnType<typeof setTimeout>;
-	handle: (error: Error | undefined, response?: Response) => void;
+  idBytes: Uint8Array;
+  stream: TransformStream;
+  writer: WritableStreamDefaultWriter<Uint8Array>;
 };
 
-function webRTCConnectionToNativeResponse(
-	webRTCConnection: WebRTCConnection,
-): Response {
-	const response = new Response(webRTCConnection.stream.readable, {
-		status: webRTCConnection.status,
-		statusText: webRTCConnection.statusText,
-		headers: webRTCConnection.headers,
-		// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-		// @ts-expect-error
-		duplex: "half",
-	});
-	Object.defineProperty(response, "url", {
-		value: `webrtc-http:${webRTCConnection.url.pathname}${webRTCConnection.url.search}`,
-	});
-	return response;
-}
-
 export function createWebRTCFetch(channel: RTCDataChannel): WebRTCFetch {
-	const responses = new Map<number, WebRTCConnection>();
-	const textEncoder = new TextEncoder();
-	const textDecoder = new TextDecoder();
+  const connections = new Map<number, WebRTCConnection>();
 
-	function createWebRTCConnection(
-		connectionId: number,
-		request: Request,
-		resolve: (response: Response) => void,
-		reject: (error: Error) => void,
-	) {
-		const stream = new TransformStream();
-		const WebRTCConnection: WebRTCConnection = {
-			connectionId,
-			url: new URL(request.url),
-			handled: false,
-			readStatus: false,
-			readHeaders: false,
-			headers: new Headers(),
-			status: 200,
-			statusText: "",
-			stream,
-			writer: stream.writable.getWriter(),
-			handle(error, response) {
-				if (WebRTCConnection.handled) {
-					reject(new TypeError("Response already handled"));
-					return;
-				}
-				WebRTCConnection.handled = true;
-				if (error) {
-					reject(error);
-				} else if (response) {
-					resolve(response);
-				} else {
-					reject(new TypeError("No response"));
-				}
-			},
-		};
-		WebRTCConnection.timeoutId = setTimeout(
-			() => WebRTCConnection.handle(new TypeError("Request timed out")),
-			DEFAULT_TIMEOUT_MS,
-		);
-		return WebRTCConnection;
-	}
+  function createWebRTCConnection() {
+    let connectionId = randomUInt32();
+    while (connections.has(connectionId)) {
+      connectionId = randomUInt32();
+    }
+    const idBytes = integerToBytes(new Uint8Array(4), connectionId);
+    const stream = new TransformStream();
+    const connection = {
+      idBytes,
+      stream,
+      writer: stream.writable.getWriter(),
+    };
+    connections.set(connectionId, connection);
+    return connection;
+  }
 
-	function createConnection(
-		request: Request,
-		resolve: (response: Response) => void,
-		reject: (error: Error) => void,
-	) {
-		let connectionId = randomUInt32();
-		while (responses.has(connectionId)) {
-			connectionId = randomUInt32();
-		}
-		const connection = createWebRTCConnection(
-			connectionId,
-			request,
-			resolve,
-			reject,
-		);
-		responses.set(connectionId, connection);
-		return connection;
-	}
+  async function onData(connectionId: number, chunk: Uint8Array) {
+    const connection = connections.get(connectionId);
+    if (!connection) {
+      throw new Error(`No connection found for id: ${connectionId}`);
+    }
+    await connection.writer.write(chunk);
+  }
 
-	async function writeRequest(connectionId: number, request: Request) {
-		const url = new URL(request.url);
-		const connectionIdBytes = integerToBytes(new Uint8Array(4), connectionId);
-		channel.send(
-			encodeLine(
-				textEncoder,
-				connectionIdBytes,
-				`${request.method} ${url.pathname + url.search} ${PROTOCAL}`,
-			),
-		);
-		request.headers.forEach((value, key) => {
-			channel.send(
-				encodeLine(textEncoder, connectionIdBytes, `${key}: ${value}`),
-			);
-		});
-		channel.send(encodeLine(textEncoder, connectionIdBytes, "\r\n"));
-		if (request.body) {
-			const reader = request.body.getReader();
-			while (true) {
-				const { done, value } = await reader.read();
-				if (value) {
-					channel.send(concatUint8Array(connectionIdBytes, value));
-				}
-				if (done) {
-					break;
-				}
-			}
-		}
-		channel.send(encodeLine(textEncoder, connectionIdBytes, "\r\n"));
-	}
+  async function onMessage(event: MessageEvent) {
+    const chunk = new Uint8Array(event.data);
+    const connectionId = bytesToInteger(chunk);
+    await onData(connectionId, chunk.slice(4));
+  }
+  channel.addEventListener("message", onMessage);
 
-	async function onConnectionMessage(connectionId: number, line: Uint8Array) {
-		const response = responses.get(connectionId);
-		if (response) {
-			if (!response.readStatus) {
-				response.readStatus = true;
-				const [_version, status, statusText] = textDecoder
-					.decode(line)
-					.split(/\s+/, 3);
-				response.status = Number.parseInt(status);
-				response.statusText = statusText;
-			} else if (!response.readHeaders) {
-				if (line[0] === R && line[1] === N) {
-					response.readHeaders = true;
-					response.handle(
-						undefined,
-						webRTCConnectionToNativeResponse(response),
-					);
-				} else {
-					const [key, value] = textDecoder.decode(line).split(/\:\s+/);
-					response.headers.append(key, value);
-				}
-			} else {
-				await response.writer.ready;
-				if (line[0] === R && line[1] === N) {
-					responses.delete(connectionId);
-					clearTimeout(response.timeoutId);
-					response.timeoutId = undefined;
-					await response.writer.close();
-				} else {
-					await response.writer.write(line);
-				}
-			}
-		}
-	}
+  const fetch: WebRTCFetch = (input, init) => {
+    return new Promise<Response>((resolve, reject) => {
+      const request = new HTTPRequest(input, init);
+      const connection = createWebRTCConnection();
+      const writableStream = bufferedWritableStream(
+        writableStreamFromChannel(
+          channel,
+          connection.idBytes,
+          DEFAULT_MAX_MESSAGE_SIZE
+        )
+      );
+      writeHTTPRequestOrResponse(writableStream, request)
+        .then(() =>
+          parseHTTPResponse(connection.stream.readable.getReader()).then(
+            resolve
+          )
+        )
+        .catch(reject);
+    });
+  };
 
-	async function onMessage(event: MessageEvent) {
-		const array = new Uint8Array(event.data);
-		const connectionId = bytesToInteger(array);
-		await onConnectionMessage(connectionId, array.slice(4));
-	}
-	channel.addEventListener("message", onMessage);
+  fetch.destroy = () => channel.removeEventListener("message", onMessage);
 
-	function fetch(
-		input: RequestInfo | URL,
-		init?: RequestInit,
-	): Promise<Response> {
-		return new Promise((resolve, reject) => {
-			const request = new Request(input, init);
-			const connection = createConnection(request, resolve, reject);
-			writeRequest(connection.connectionId, request);
-		});
-	}
-
-	fetch.destroy = () => channel.removeEventListener("message", onMessage);
-
-	return fetch;
+  return fetch;
 }

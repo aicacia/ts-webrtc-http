@@ -1,139 +1,63 @@
 import { bytesToInteger, integerToBytes } from "@aicacia/hash";
+import { parseHTTPRequest, writeHTTPRequestOrResponse } from "./HTTP";
 import {
-	DEFAULT_TIMEOUT_MS,
-	N,
-	PROTOCAL,
-	R,
-	concatUint8Array,
-	encodeLine,
-	statusCodeToStatusText,
+  bufferedWritableStream,
+  DEFAULT_MAX_MESSAGE_SIZE,
+  writableStreamFromChannel,
 } from "./utils";
 
 interface WebRTCConnection {
-	readHeaders: boolean;
-	method: string;
-	path: string;
-	headers: Headers;
-	stream: TransformStream<Uint8Array, Uint8Array>;
-	writer: WritableStreamDefaultWriter<Uint8Array>;
-	timeoutId?: ReturnType<typeof setTimeout>;
+  stream: TransformStream<Uint8Array, Uint8Array>;
+  writer: WritableStreamDefaultWriter<Uint8Array>;
 }
 
-function createWebRTCConnection(
-	method: string,
-	path: string,
-): WebRTCConnection {
-	const stream = new TransformStream<Uint8Array>();
-	return {
-		readHeaders: false,
-		method,
-		path,
-		headers: new Headers(),
-		stream,
-		writer: stream.writable.getWriter(),
-	};
-}
-
-function webRTCConnectionToNativeRequest(
-	webRTCConnection: WebRTCConnection,
-): Request {
-	return new Request(`webrtc-http:${webRTCConnection.path}`, {
-		method: webRTCConnection.method,
-		headers: webRTCConnection.headers,
-		body:
-			webRTCConnection.method === "GET" || webRTCConnection.method === "HEAD"
-				? null
-				: webRTCConnection.stream.readable,
-		// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-		// @ts-expect-error
-		duplex: "half",
-	});
+function createWebRTCConnection(): WebRTCConnection {
+  const stream = new TransformStream<Uint8Array>();
+  return {
+    stream,
+    writer: stream.writable.getWriter(),
+  };
 }
 
 export function createWebRTCServer(
-	channel: RTCDataChannel,
-	handler: (request: Request) => Promise<Response> | Response,
+  channel: RTCDataChannel,
+  handler: (request: Request) => Promise<Response> | Response
 ) {
-	const requests = new Map<number, WebRTCConnection>();
-	const textEncoder = new TextEncoder();
-	const textDecoder = new TextDecoder();
+  const connections = new Map<number, WebRTCConnection>();
 
-	async function writeResponse(requestId: number, response: Response) {
-		const requestIdBytes = integerToBytes(new Uint8Array(4), requestId);
-		channel.send(
-			encodeLine(
-				textEncoder,
-				requestIdBytes,
-				`${PROTOCAL} ${response.status} ${statusCodeToStatusText(response.status)}`,
-			),
-		);
-		response.headers.forEach((value, key) => {
-			channel.send(encodeLine(textEncoder, requestIdBytes, `${key}: ${value}`));
-		});
-		channel.send(encodeLine(textEncoder, requestIdBytes, "\r\n"));
-		if (response.body) {
-			const reader = response.body.getReader();
-			while (true) {
-				const { done, value } = await reader.read();
-				if (value) {
-					channel.send(concatUint8Array(requestIdBytes, value));
-				}
-				if (done) {
-					break;
-				}
-			}
-		}
-		channel.send(encodeLine(textEncoder, requestIdBytes, "\r\n"));
-	}
+  async function handle(connectionId: number, connection: WebRTCConnection) {
+    const request = await parseHTTPRequest(
+      connection.stream.readable.getReader()
+    );
+    const response = await handler(request);
+    const writableStream = bufferedWritableStream(
+      writableStreamFromChannel(
+        channel,
+        integerToBytes(new Uint8Array(4), connectionId),
+        DEFAULT_MAX_MESSAGE_SIZE
+      )
+    );
+    await writeHTTPRequestOrResponse(writableStream, response);
+  }
 
-	async function handle(requestId: number, request: Request) {
-		const response = await handler(request);
-		await writeResponse(requestId, response);
-	}
+  async function onData(connectionId: number, chunk: Uint8Array) {
+    let connection = connections.get(connectionId);
+    if (!connection) {
+      connection = createWebRTCConnection();
+      connections.set(connectionId, connection);
+      handle(connectionId, connection);
+    }
+    await connection.writer.write(chunk);
+  }
 
-	async function onConnectionMessage(requestId: number, line: Uint8Array) {
-		const request = requests.get(requestId);
-		if (!request) {
-			const [method, path, version] = textDecoder.decode(line).split(/\s+/);
-			if (method && path && version) {
-				const request = createWebRTCConnection(method, path);
-				requests.set(requestId, request);
-				request.timeoutId = setTimeout(
-					() => requests.delete(requestId),
-					DEFAULT_TIMEOUT_MS,
-				);
-			}
-		} else {
-			if (!request.readHeaders) {
-				if (line[0] === R && line[1] === N) {
-					request.readHeaders = true;
-					await handle(requestId, webRTCConnectionToNativeRequest(request));
-				} else {
-					const [key, value] = textDecoder.decode(line).split(/\:\s+/, 2);
-					request.headers.append(key, value);
-				}
-			} else {
-				await request.writer.ready;
-				if (line[0] === R && line[1] === N) {
-					requests.delete(requestId);
-					clearTimeout(request.timeoutId);
-					request.timeoutId = undefined;
-					await request.writer.close();
-				} else {
-					await request.writer.write(line);
-				}
-			}
-		}
-	}
+  async function onMessage(event: MessageEvent) {
+    const chunk = new Uint8Array(event.data);
+    const connectionId = bytesToInteger(chunk);
+    await onData(connectionId, chunk.slice(4));
+  }
+  channel.addEventListener("message", onMessage);
 
-	async function onMessage(event: MessageEvent) {
-		const array = new Uint8Array(event.data);
-		const requestId = bytesToInteger(array);
-		await onConnectionMessage(requestId, array.slice(4));
-	}
-	channel.addEventListener("message", onMessage);
-
-	return () => {
-		channel.removeEventListener("message", onMessage);
-	};
+  return () => {
+    channel.removeEventListener("message", onMessage);
+  };
 }
