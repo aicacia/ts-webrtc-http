@@ -1,159 +1,113 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.statusCodeToStatusText = exports.randomUInt32 = exports.concatUint8Array = exports.encodeLine = exports.N = exports.R = exports.DEFAULT_TIMEOUT_MS = exports.PROTOCAL = exports.PROTOCAL_VERSION = exports.PROTOCAL_NAME = void 0;
+exports.DEFAULT_BUFFER_SIZE = exports.DEFAULT_TIMEOUT_MS = exports.DEFAULT_MAX_MESSAGE_SIZE = void 0;
+exports.concatUint8Array = concatUint8Array;
+exports.writeToUint8Array = writeToUint8Array;
+exports.randomUInt32 = randomUInt32;
+exports.writableStreamFromChannel = writableStreamFromChannel;
+exports.write = write;
+exports.bufferedWritableStream = bufferedWritableStream;
+exports.readAll = readAll;
+const tslib_1 = require("tslib");
 const rand_1 = require("@aicacia/rand");
-exports.PROTOCAL_NAME = "HTTP-WEBRTC";
-exports.PROTOCAL_VERSION = "1.0";
-exports.PROTOCAL = `${exports.PROTOCAL_NAME}/${exports.PROTOCAL_VERSION}`;
+exports.DEFAULT_MAX_MESSAGE_SIZE = 16384;
 exports.DEFAULT_TIMEOUT_MS = 60000;
-exports.R = "\r".charCodeAt(0);
-exports.N = "\n".charCodeAt(0);
-function encodeLine(encoder, idBytes, line) {
-    const lineBytes = encoder.encode(line);
-    return concatUint8Array(idBytes, lineBytes);
-}
-exports.encodeLine = encodeLine;
+exports.DEFAULT_BUFFER_SIZE = 4096;
 function concatUint8Array(a, b) {
-    const bytes = new Uint8Array(a.length + b.length);
+    const bytes = new Uint8Array(a.byteLength + b.byteLength);
     bytes.set(a);
-    bytes.set(b, a.length);
+    bytes.set(b, a.byteLength);
     return bytes;
 }
-exports.concatUint8Array = concatUint8Array;
+function writeToUint8Array(buffer, offset, chunk) {
+    if (chunk.byteLength >= buffer.byteLength - offset) {
+        const newBuffer = new Uint8Array(buffer.byteLength * 2);
+        newBuffer.set(buffer);
+        newBuffer.set(chunk, offset);
+        return newBuffer;
+    }
+    buffer.set(chunk, offset);
+    return buffer;
+}
 function randomUInt32() {
     return (Math.random() * rand_1.MAX_INT) | 0;
 }
-exports.randomUInt32 = randomUInt32;
-function statusCodeToStatusText(statusCode) {
-    switch (statusCode) {
-        case 100:
-            return "Continue";
-        case 101:
-            return "Switching Protocols";
-        case 102:
-            return "Processing";
-        case 103:
-            return "Early Hints";
-        case 200:
-            return "OK";
-        case 201:
-            return "Created";
-        case 202:
-            return "Accepted";
-        case 203:
-            return "Non-Authoritative Information";
-        case 204:
-            return "No Content";
-        case 205:
-            return "Reset Content";
-        case 206:
-            return "Partial Content";
-        case 207:
-            return "Multi-Status";
-        case 208:
-            return "Already Reported";
-        case 226:
-            return "IM Used";
-        case 300:
-            return "Multiple Choices";
-        case 301:
-            return "Moved Permanently";
-        case 302:
-            return "Found";
-        case 303:
-            return "See Other";
-        case 304:
-            return "Not Modified";
-        case 305:
-            return "Use Proxy";
-        case 306:
-            return "Switch Proxy";
-        case 307:
-            return "Temporary Redirect";
-        case 308:
-            return "Permanent Redirect";
-        case 400:
-            return "Bad Request";
-        case 401:
-            return "Unauthorized";
-        case 402:
-            return "Payment Required";
-        case 403:
-            return "Forbidden";
-        case 404:
-            return "Not Found";
-        case 405:
-            return "Method Not Allowed";
-        case 406:
-            return "Not Acceptable";
-        case 407:
-            return "Proxy Authentication Required";
-        case 408:
-            return "Request Timeout";
-        case 409:
-            return "Conflict";
-        case 410:
-            return "Gone";
-        case 411:
-            return "Length Required";
-        case 412:
-            return "Precondition Failed";
-        case 413:
-            return "Payload Too Large";
-        case 414:
-            return "URI Too Long";
-        case 415:
-            return "Unsupported Media Type";
-        case 416:
-            return "Range Not Satisfiable";
-        case 417:
-            return "Expectation Failed";
-        case 418:
-            return "I'm a teapot";
-        case 421:
-            return "Misdirected Request";
-        case 422:
-            return "Unprocessable Entity";
-        case 423:
-            return "Locked";
-        case 424:
-            return "Failed Dependency";
-        case 425:
-            return "Too Early";
-        case 426:
-            return "Upgrade Required";
-        case 428:
-            return "Precondition Required";
-        case 429:
-            return "Too Many Requests";
-        case 431:
-            return "Request Header Fields Too Large";
-        case 451:
-            return "Unavailable For Legal Reasons";
-        case 500:
-            return "Internal Server Error";
-        case 501:
-            return "Not Implemented";
-        case 502:
-            return "Bad Gateway";
-        case 503:
-            return "Service Unavailable";
-        case 504:
-            return "Gateway Timeout";
-        case 505:
-            return "HTTP Version Not Supported";
-        case 506:
-            return "Variant Also Negotiates";
-        case 507:
-            return "Insufficient Storage";
-        case 508:
-            return "Loop Detected";
-        case 510:
-            return "Not Extended";
-        case 511:
-            return "Network Authentication Required";
-        default:
-            return "Unknown Status Code";
+function writableStreamFromChannel(channel, idBytes, maxChannelMessageSize) {
+    return new WritableStream({
+        write(chunk) {
+            console.log(new TextDecoder().decode(chunk));
+            write(channel, concatUint8Array(idBytes, chunk), maxChannelMessageSize);
+        },
+    });
+}
+function write(channel, chunk, maxChannelMessageSize) {
+    if (chunk.byteLength < maxChannelMessageSize) {
+        channel.send(chunk);
+    }
+    else {
+        let offset = 0;
+        while (offset < chunk.byteLength) {
+            const length = Math.min(maxChannelMessageSize, chunk.byteLength - offset);
+            channel.send(chunk.slice(offset, offset + length));
+            offset += length;
+        }
     }
 }
-exports.statusCodeToStatusText = statusCodeToStatusText;
+function bufferedWritableStream(writableStream, bufferSize = exports.DEFAULT_BUFFER_SIZE) {
+    const buffer = new Uint8Array(bufferSize);
+    let bufferOffset = 0;
+    const writer = writableStream.getWriter();
+    function write(chunk) {
+        return tslib_1.__awaiter(this, void 0, void 0, function* () {
+            if (chunk.byteLength > buffer.byteLength - bufferOffset) {
+                yield flush();
+            }
+            if (chunk.byteLength >= buffer.byteLength) {
+                yield writer.write(chunk);
+            }
+            else {
+                buffer.set(chunk, bufferOffset);
+                bufferOffset += chunk.byteLength;
+            }
+        });
+    }
+    function flush() {
+        return tslib_1.__awaiter(this, void 0, void 0, function* () {
+            if (bufferOffset > 0) {
+                yield writer.write(buffer.slice(0, bufferOffset));
+                bufferOffset = 0;
+            }
+        });
+    }
+    return new WritableStream({
+        write,
+        close() {
+            return tslib_1.__awaiter(this, void 0, void 0, function* () {
+                yield flush();
+                yield writer.close();
+            });
+        },
+    });
+}
+function readAll(reader) {
+    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+        try {
+            const { done, value: bytes } = yield reader.read();
+            if (done) {
+                return new Uint8Array();
+            }
+            let result = bytes;
+            while (true) {
+                const { done, value: bytes } = yield reader.read();
+                if (done) {
+                    break;
+                }
+                result = concatUint8Array(result, bytes);
+            }
+            return result;
+        }
+        finally {
+            reader.releaseLock();
+        }
+    });
+}
