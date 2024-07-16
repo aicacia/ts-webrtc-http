@@ -35,7 +35,6 @@ function randomUInt32() {
 function writableStreamFromChannel(channel, idBytes, maxChannelMessageSize) {
     return new WritableStream({
         write(chunk) {
-            console.log(new TextDecoder().decode(chunk));
             write(channel, concatUint8Array(idBytes, chunk), maxChannelMessageSize);
         },
     });

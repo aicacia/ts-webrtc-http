@@ -37,7 +37,6 @@ export function writableStreamFromChannel(
 ) {
 	return new WritableStream({
 		write(chunk: Uint8Array) {
-			console.log(new TextDecoder().decode(chunk));
 			write(channel, concatUint8Array(idBytes, chunk), maxChannelMessageSize);
 		},
 	});
