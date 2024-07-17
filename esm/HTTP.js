@@ -83,6 +83,8 @@ export async function writeHTTPRequestOrResponse(writableStream, requestOrRespon
     }
     else {
         await writer.write(TEXT_ENCODER.encode("\r\n"));
+        writer.releaseLock();
+        writableStream.close();
     }
 }
 async function readRequestStartLine(reader) {

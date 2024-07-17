@@ -97,6 +97,8 @@ function writeHTTPRequestOrResponse(writableStream, requestOrResponse) {
         }
         else {
             yield writer.write(TEXT_ENCODER.encode("\r\n"));
+            writer.releaseLock();
+            writableStream.close();
         }
     });
 }

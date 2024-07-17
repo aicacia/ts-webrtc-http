@@ -117,6 +117,9 @@ export async function writeHTTPRequestOrResponse(
 		}
 	} else {
 		await writer.write(TEXT_ENCODER.encode("\r\n"));
+
+		writer.releaseLock();
+		writableStream.close();
 	}
 }
 
