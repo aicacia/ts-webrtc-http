@@ -67,59 +67,63 @@ export async function writeHTTPRequestOrResponse(
 	requestOrResponse: Request | Response,
 ) {
 	const writer = writableStream.getWriter();
-	const [request, response] =
-		requestOrResponse instanceof Request
-			? [requestOrResponse, null]
-			: [null, requestOrResponse];
-	if (request) {
-		await writer.write(
-			TEXT_ENCODER.encode(`${request.method} ${request.url} HTTP/1.1\r\n`),
-		);
-	} else {
-		await writer.write(
-			TEXT_ENCODER.encode(
-				`HTTP/1.1 ${response.status} ${response.statusText}\r\n`,
-			),
-		);
-	}
-	const headers = requestOrResponse.headers as Headers & {
-		entries(): IterableIterator<[string, string]>;
-	};
-	let contentLength = 0;
-	let chunked = false;
-	if (requestOrResponse.body) {
-		contentLength = Number.parseInt(headers.get("Content-Length") || "0", 10);
-		chunked = headers.get("Transfer-Encoding")?.toLowerCase() === "chunked";
-	}
-	for (const [key, value] of headers.entries()) {
-		await writer.write(TEXT_ENCODER.encode(`${key}: ${value}\r\n`));
-	}
-	if (requestOrResponse.body) {
+	let closed = false;
+	try {
+		const [request, response] =
+			requestOrResponse instanceof Request
+				? [requestOrResponse, null]
+				: [null, requestOrResponse];
 		if (request) {
-			const body = await readAll(requestOrResponse.body.getReader());
-
 			await writer.write(
-				TEXT_ENCODER.encode(`Content-Length: ${body.byteLength}\r\n\r\n`),
+				TEXT_ENCODER.encode(`${request.method} ${request.url} HTTP/1.1\r\n`),
 			);
-			await writer.write(body);
+		} else {
+			await writer.write(
+				TEXT_ENCODER.encode(
+					`HTTP/1.1 ${response.status} ${response.statusText}\r\n`,
+				),
+			);
+		}
+		const headers = requestOrResponse.headers as Headers & {
+			entries(): IterableIterator<[string, string]>;
+		};
+		let contentLength = 0;
+		let chunked = false;
+		if (requestOrResponse.body) {
+			contentLength = Number.parseInt(headers.get("Content-Length") || "0", 10);
+			chunked = headers.get("Transfer-Encoding")?.toLowerCase() === "chunked";
+		}
+		for (const [key, value] of headers.entries()) {
+			await writer.write(TEXT_ENCODER.encode(`${key}: ${value}\r\n`));
+		}
+		if (requestOrResponse.body) {
+			if (request) {
+				const body = await readAll(requestOrResponse.body.getReader());
 
-			writer.releaseLock();
-			writableStream.close();
+				await writer.write(
+					TEXT_ENCODER.encode(`Content-Length: ${body.byteLength}\r\n\r\n`),
+				);
+				await writer.write(body);
+			} else {
+				await writer.write(TEXT_ENCODER.encode("\r\n"));
+				writer.releaseLock();
+
+				await streamBody(
+					createTextReader(requestOrResponse.body.getReader()),
+					chunked,
+					contentLength,
+				)?.pipeTo(writableStream);
+
+				closed = true;
+			}
 		} else {
 			await writer.write(TEXT_ENCODER.encode("\r\n"));
-			writer.releaseLock();
-
-			await streamBody(
-				createTextReader(requestOrResponse.body.getReader()),
-				chunked,
-				contentLength,
-			)?.pipeTo(writableStream);
 		}
-	} else {
-		await writer.write(TEXT_ENCODER.encode("\r\n"));
-
-		writer.releaseLock();
-		writableStream.close();
+	} finally {
+		if (!closed) {
+			writer.releaseLock();
+			writableStream.close();
+		}
 	}
 }
 

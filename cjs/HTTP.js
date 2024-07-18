@@ -62,43 +62,49 @@ function writeHTTPRequestOrResponse(writableStream, requestOrResponse) {
     return tslib_1.__awaiter(this, void 0, void 0, function* () {
         var _a, _b;
         const writer = writableStream.getWriter();
-        const [request, response] = requestOrResponse instanceof Request
-            ? [requestOrResponse, null]
-            : [null, requestOrResponse];
-        if (request) {
-            yield writer.write(TEXT_ENCODER.encode(`${request.method} ${request.url} HTTP/1.1\r\n`));
-        }
-        else {
-            yield writer.write(TEXT_ENCODER.encode(`HTTP/1.1 ${response.status} ${response.statusText}\r\n`));
-        }
-        const headers = requestOrResponse.headers;
-        let contentLength = 0;
-        let chunked = false;
-        if (requestOrResponse.body) {
-            contentLength = Number.parseInt(headers.get("Content-Length") || "0", 10);
-            chunked = ((_a = headers.get("Transfer-Encoding")) === null || _a === void 0 ? void 0 : _a.toLowerCase()) === "chunked";
-        }
-        for (const [key, value] of headers.entries()) {
-            yield writer.write(TEXT_ENCODER.encode(`${key}: ${value}\r\n`));
-        }
-        if (requestOrResponse.body) {
+        let closed = false;
+        try {
+            const [request, response] = requestOrResponse instanceof Request
+                ? [requestOrResponse, null]
+                : [null, requestOrResponse];
             if (request) {
-                const body = yield (0, utils_1.readAll)(requestOrResponse.body.getReader());
-                yield writer.write(TEXT_ENCODER.encode(`Content-Length: ${body.byteLength}\r\n\r\n`));
-                yield writer.write(body);
-                writer.releaseLock();
-                writableStream.close();
+                yield writer.write(TEXT_ENCODER.encode(`${request.method} ${request.url} HTTP/1.1\r\n`));
+            }
+            else {
+                yield writer.write(TEXT_ENCODER.encode(`HTTP/1.1 ${response.status} ${response.statusText}\r\n`));
+            }
+            const headers = requestOrResponse.headers;
+            let contentLength = 0;
+            let chunked = false;
+            if (requestOrResponse.body) {
+                contentLength = Number.parseInt(headers.get("Content-Length") || "0", 10);
+                chunked = ((_a = headers.get("Transfer-Encoding")) === null || _a === void 0 ? void 0 : _a.toLowerCase()) === "chunked";
+            }
+            for (const [key, value] of headers.entries()) {
+                yield writer.write(TEXT_ENCODER.encode(`${key}: ${value}\r\n`));
+            }
+            if (requestOrResponse.body) {
+                if (request) {
+                    const body = yield (0, utils_1.readAll)(requestOrResponse.body.getReader());
+                    yield writer.write(TEXT_ENCODER.encode(`Content-Length: ${body.byteLength}\r\n\r\n`));
+                    yield writer.write(body);
+                }
+                else {
+                    yield writer.write(TEXT_ENCODER.encode("\r\n"));
+                    writer.releaseLock();
+                    yield ((_b = streamBody(createTextReader(requestOrResponse.body.getReader()), chunked, contentLength)) === null || _b === void 0 ? void 0 : _b.pipeTo(writableStream));
+                    closed = true;
+                }
             }
             else {
                 yield writer.write(TEXT_ENCODER.encode("\r\n"));
-                writer.releaseLock();
-                yield ((_b = streamBody(createTextReader(requestOrResponse.body.getReader()), chunked, contentLength)) === null || _b === void 0 ? void 0 : _b.pipeTo(writableStream));
             }
         }
-        else {
-            yield writer.write(TEXT_ENCODER.encode("\r\n"));
-            writer.releaseLock();
-            writableStream.close();
+        finally {
+            if (!closed) {
+                writer.releaseLock();
+                writableStream.close();
+            }
         }
     });
 }
