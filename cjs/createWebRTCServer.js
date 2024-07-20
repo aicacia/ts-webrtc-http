@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createWebRTCServer = createWebRTCServer;
 const tslib_1 = require("tslib");
 const hash_1 = require("@aicacia/hash");
-const HTTP_1 = require("./HTTP");
+const http_1 = require("@aicacia/http");
 const utils_1 = require("./utils");
 function createWebRTCConnection() {
     const stream = new TransformStream();
@@ -16,10 +16,10 @@ function createWebRTCServer(channel, handler) {
     const connections = new Map();
     function handle(connectionId, connection) {
         return tslib_1.__awaiter(this, void 0, void 0, function* () {
-            const request = yield (0, HTTP_1.parseHTTPRequest)(connection.stream.readable.getReader());
+            const request = yield (0, http_1.parseRequest)(connection.stream.readable.getReader());
             const response = yield handler(request);
             const writableStream = (0, utils_1.bufferedWritableStream)((0, utils_1.writableStreamFromChannel)(channel, (0, hash_1.integerToBytes)(new Uint8Array(4), connectionId), utils_1.DEFAULT_MAX_MESSAGE_SIZE));
-            yield (0, HTTP_1.writeHTTPRequestOrResponse)(writableStream, response);
+            yield (0, http_1.writeRequestOrResponse)(writableStream, response);
         });
     }
     function onData(connectionId, chunk) {

@@ -1,5 +1,5 @@
 import { bytesToInteger, integerToBytes } from "@aicacia/hash";
-import { parseHTTPRequest, writeHTTPRequestOrResponse } from "./HTTP";
+import { parseRequest, writeRequestOrResponse } from "@aicacia/http";
 import {
 	bufferedWritableStream,
 	DEFAULT_MAX_MESSAGE_SIZE,
@@ -26,9 +26,7 @@ export function createWebRTCServer(
 	const connections = new Map<number, WebRTCConnection>();
 
 	async function handle(connectionId: number, connection: WebRTCConnection) {
-		const request = await parseHTTPRequest(
-			connection.stream.readable.getReader(),
-		);
+		const request = await parseRequest(connection.stream.readable.getReader());
 		const response = await handler(request);
 		const writableStream = bufferedWritableStream(
 			writableStreamFromChannel(
@@ -37,7 +35,7 @@ export function createWebRTCServer(
 				DEFAULT_MAX_MESSAGE_SIZE,
 			),
 		);
-		await writeHTTPRequestOrResponse(writableStream, response);
+		await writeRequestOrResponse(writableStream, response);
 	}
 
 	async function onData(connectionId: number, chunk: Uint8Array) {

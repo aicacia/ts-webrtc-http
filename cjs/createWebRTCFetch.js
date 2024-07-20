@@ -4,7 +4,7 @@ exports.createWebRTCFetch = createWebRTCFetch;
 const tslib_1 = require("tslib");
 const hash_1 = require("@aicacia/hash");
 const utils_1 = require("./utils");
-const HTTP_1 = require("./HTTP");
+const http_1 = require("@aicacia/http");
 function createWebRTCFetch(channel) {
     const connections = new Map();
     function createWebRTCConnection() {
@@ -41,11 +41,11 @@ function createWebRTCFetch(channel) {
     channel.addEventListener("message", onMessage);
     const fetch = (input, init) => {
         return new Promise((resolve, reject) => {
-            const request = new HTTP_1.HTTPRequest(input, init);
+            const request = new http_1.HTTPRequest(input, init);
             const connection = createWebRTCConnection();
             const writableStream = (0, utils_1.bufferedWritableStream)((0, utils_1.writableStreamFromChannel)(channel, connection.idBytes, utils_1.DEFAULT_MAX_MESSAGE_SIZE));
-            (0, HTTP_1.writeHTTPRequestOrResponse)(writableStream, request)
-                .then(() => (0, HTTP_1.parseHTTPResponse)(connection.stream.readable.getReader()).then(resolve))
+            (0, http_1.writeRequestOrResponse)(writableStream, request)
+                .then(() => (0, http_1.parseResponse)(connection.stream.readable.getReader()).then(resolve))
                 .catch(reject);
         });
     };

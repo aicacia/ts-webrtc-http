@@ -1,6 +1,6 @@
 import { bytesToInteger, integerToBytes } from "@aicacia/hash";
 import { bufferedWritableStream, DEFAULT_MAX_MESSAGE_SIZE, randomUInt32, writableStreamFromChannel, } from "./utils";
-import { HTTPRequest, parseHTTPResponse, writeHTTPRequestOrResponse, } from "./HTTP";
+import { HTTPRequest, parseResponse, writeRequestOrResponse, } from "@aicacia/http";
 export function createWebRTCFetch(channel) {
     const connections = new Map();
     function createWebRTCConnection() {
@@ -36,8 +36,8 @@ export function createWebRTCFetch(channel) {
             const request = new HTTPRequest(input, init);
             const connection = createWebRTCConnection();
             const writableStream = bufferedWritableStream(writableStreamFromChannel(channel, connection.idBytes, DEFAULT_MAX_MESSAGE_SIZE));
-            writeHTTPRequestOrResponse(writableStream, request)
-                .then(() => parseHTTPResponse(connection.stream.readable.getReader()).then(resolve))
+            writeRequestOrResponse(writableStream, request)
+                .then(() => parseResponse(connection.stream.readable.getReader()).then(resolve))
                 .catch(reject);
         });
     };

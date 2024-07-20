@@ -7,9 +7,9 @@ import {
 } from "./utils";
 import {
 	HTTPRequest,
-	parseHTTPResponse,
-	writeHTTPRequestOrResponse,
-} from "./HTTP";
+	parseResponse,
+	writeRequestOrResponse,
+} from "@aicacia/http";
 
 type Fetch = typeof fetch;
 
@@ -68,11 +68,9 @@ export function createWebRTCFetch(channel: RTCDataChannel): WebRTCFetch {
 					DEFAULT_MAX_MESSAGE_SIZE,
 				),
 			);
-			writeHTTPRequestOrResponse(writableStream, request)
+			writeRequestOrResponse(writableStream, request)
 				.then(() =>
-					parseHTTPResponse(connection.stream.readable.getReader()).then(
-						resolve,
-					),
+					parseResponse(connection.stream.readable.getReader()).then(resolve),
 				)
 				.catch(reject);
 		});

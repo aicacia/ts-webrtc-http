@@ -1,30 +1,9 @@
+import { concatUint8Array } from "@aicacia/http";
 import { MAX_INT } from "@aicacia/rand";
 
 export const DEFAULT_MAX_MESSAGE_SIZE = 16384;
 export const DEFAULT_TIMEOUT_MS = 60_000;
 export const DEFAULT_BUFFER_SIZE = 4096;
-
-export function concatUint8Array(a: Uint8Array, b: Uint8Array) {
-	const bytes = new Uint8Array(a.byteLength + b.byteLength);
-	bytes.set(a);
-	bytes.set(b, a.byteLength);
-	return bytes;
-}
-
-export function writeToUint8Array(
-	buffer: Uint8Array,
-	offset: number,
-	chunk: Uint8Array,
-): Uint8Array {
-	if (chunk.byteLength >= buffer.byteLength - offset) {
-		const newBuffer = new Uint8Array(buffer.byteLength * 2);
-		newBuffer.set(buffer);
-		newBuffer.set(chunk, offset);
-		return newBuffer;
-	}
-	buffer.set(chunk, offset);
-	return buffer;
-}
 
 export function randomUInt32() {
 	return (Math.random() * MAX_INT) | 0;
@@ -67,14 +46,21 @@ export function bufferedWritableStream(
 	let bufferOffset = 0;
 	const writer = writableStream.getWriter();
 	async function write(chunk: Uint8Array) {
-		if (chunk.byteLength > buffer.byteLength - bufferOffset) {
-			await flush();
-		}
-		if (chunk.byteLength >= buffer.byteLength) {
-			await writer.write(chunk);
-		} else {
-			buffer.set(chunk, bufferOffset);
-			bufferOffset += chunk.byteLength;
+		let bytesWritten = 0;
+		while (bytesWritten < chunk.byteLength) {
+			if (bufferOffset >= bufferSize) {
+				await flush();
+			}
+			const length = Math.min(
+				bufferSize - bufferOffset,
+				chunk.byteLength - bytesWritten,
+			);
+			buffer.set(
+				chunk.slice(bytesWritten, bytesWritten + length),
+				bufferOffset,
+			);
+			bufferOffset += length;
+			bytesWritten += length;
 		}
 	}
 	async function flush() {
@@ -90,26 +76,4 @@ export function bufferedWritableStream(
 			await writer.close();
 		},
 	});
-}
-
-export async function readAll(
-	reader: ReadableStreamDefaultReader<Uint8Array>,
-): Promise<Uint8Array> {
-	try {
-		const { done, value: bytes } = await reader.read();
-		if (done) {
-			return new Uint8Array();
-		}
-		let result = bytes;
-		while (true) {
-			const { done, value: bytes } = await reader.read();
-			if (done) {
-				break;
-			}
-			result = concatUint8Array(result, bytes);
-		}
-		return result;
-	} finally {
-		reader.releaseLock();
-	}
 }
