@@ -11,13 +11,13 @@ importers:
       '@aicacia/hash':
         specifier: '0'
         version: 0.2.3(tslib@2.6.3)
+      '@aicacia/http':
+        specifier: git://github.com/aicacia/ts-http.git#84fd36a
+        version: https://codeload.github.com/aicacia/ts-http/tar.gz/84fd36a(tslib@2.6.3)
       '@aicacia/rand':
         specifier: '0'
         version: 0.2.14(tslib@2.6.3)
     devDependencies:
-      '@aicacia/http':
-        specifier: git://github.com/aicacia/ts-http.git#84fd36a
-        version: https://codeload.github.com/aicacia/ts-http/tar.gz/84fd36a(tslib@2.6.3)
       '@aicacia/peer':
         specifier: git://github.com/aicacia/ts-peer.git#93ad77d
         version: https://codeload.github.com/aicacia/ts-peer/tar.gz/93ad77d(tslib@2.6.3)

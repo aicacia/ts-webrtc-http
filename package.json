@@ -1,75 +1,86 @@
 {
-	"name": "@aicacia/webrtchttp",
-	"version": "0.1.0",
-	"description": "webrtc fetch",
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/aicacia/ts-webrtchttp"
-	},
-	"module": "esm/index.js",
-	"main": "cjs/index.js",
-	"types": "types/index.d.ts",
-	"scripts": {
-		"buildTSC": "tsc",
-		"buildESM": "tsc -b tsconfig.esm.json",
-		"buildBrowser": "rollup -c",
-		"build": "npm run clean && npm run buildTSC && npm run buildESM && npm run buildBrowser",
-		"doc": "typedoc",
-		"prepublishOnly": "npm run build",
-		"test": "ts-node node_modules/tape/bin/tape src/**/*.test.{ts,tsx} | tap-spec",
-		"bench": "ts-node node_modules/tape/bin/tape src/**/*.benchmark.{ts,tsx} | tap-spec",
-		"coverage": "nyc --reporter=lcov --check-coverage --lines=75 --require ts-node/register tape src/**/*.test.{ts,tsx} | tap-spec; nyc report ---reporter=text",
-		"coverageHTML": "nyc --reporter=lcov --check-coverage --lines=75 --require ts-node/register tape src/**/*.test.{ts,tsx} | tap-spec; nyc report ---reporter=html",
-		"clean": "rm -rf esm cjs browser types .nyc_output coverage",
-		"lint": "biome lint ./src",
-		"format": "biome format --write .",
-		"preCommit": "npm run format && npm run lint && npm run coverage",
-		"prepare": "husky",
-		"example": "pnpm --filter ./example start"
-	},
-	"husky": {
-		"hooks": {
-			"pre-commit": "npm run preCommit"
-		}
-	},
-	"keywords": ["webrtc", "fetch", "http"],
-	"author": "Nathan Faucett",
-	"license": "(MIT OR Apache-2.0)",
-	"readmeFilename": "README.md",
-	"devDependencies": {
-		"@biomejs/biome": "1",
-		"@rollup/plugin-commonjs": "26",
-		"@rollup/plugin-node-resolve": "15",
-		"@rollup/plugin-typescript": "11",
-		"@aicacia/peer": "git://github.com/aicacia/ts-peer.git#93ad77d",
-		"@aicacia/http": "git://github.com/aicacia/ts-http.git#84fd36a",
-		"@types/tape": "5",
-		"events": "3",
-		"husky": "9",
-		"nyc": "17",
-		"parcel": "2",
-		"process": "0",
-		"rollup": "4",
-		"rollup-plugin-esm-import-to-url": "2",
-		"@rollup/plugin-terser": "0",
-		"tap-nyc": "1",
-		"tap-spec": "5",
-		"tape": "5",
-		"ts-node": "10",
-		"tslib": "2",
-		"typedoc": "0",
-		"typescript": "5"
-	},
-	"dependencies": {
-		"@aicacia/hash": "0",
-		"@aicacia/rand": "0"
-	},
-	"peerDependencies": {
-		"tslib": "2"
-	},
-	"nyc": {
-		"include": ["src"],
-		"exclude": ["src/**/*.test.*"],
-		"extension": [".ts", ".tsx"]
-	}
+  "name": "@aicacia/webrtchttp",
+  "version": "0.1.0",
+  "description": "webrtc fetch",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aicacia/ts-webrtchttp"
+  },
+  "module": "esm/index.js",
+  "main": "cjs/index.js",
+  "types": "types/index.d.ts",
+  "scripts": {
+    "buildTSC": "tsc",
+    "buildESM": "tsc -b tsconfig.esm.json",
+    "buildBrowser": "rollup -c",
+    "build": "npm run clean && npm run buildTSC && npm run buildESM && npm run buildBrowser",
+    "doc": "typedoc",
+    "prepublishOnly": "npm run build",
+    "test": "ts-node node_modules/tape/bin/tape src/**/*.test.{ts,tsx} | tap-spec",
+    "bench": "ts-node node_modules/tape/bin/tape src/**/*.benchmark.{ts,tsx} | tap-spec",
+    "coverage": "nyc --reporter=lcov --check-coverage --lines=75 --require ts-node/register tape src/**/*.test.{ts,tsx} | tap-spec; nyc report ---reporter=text",
+    "coverageHTML": "nyc --reporter=lcov --check-coverage --lines=75 --require ts-node/register tape src/**/*.test.{ts,tsx} | tap-spec; nyc report ---reporter=html",
+    "clean": "rm -rf esm cjs browser types .nyc_output coverage",
+    "lint": "biome lint ./src",
+    "format": "biome format --write .",
+    "preCommit": "npm run format && npm run lint && npm run coverage",
+    "prepare": "husky",
+    "example": "pnpm --filter ./example start"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "npm run preCommit"
+    }
+  },
+  "keywords": [
+    "webrtc",
+    "fetch",
+    "http"
+  ],
+  "author": "Nathan Faucett",
+  "license": "(MIT OR Apache-2.0)",
+  "readmeFilename": "README.md",
+  "devDependencies": {
+    "@biomejs/biome": "1",
+    "@rollup/plugin-commonjs": "26",
+    "@rollup/plugin-node-resolve": "15",
+    "@rollup/plugin-typescript": "11",
+    "@aicacia/peer": "git://github.com/aicacia/ts-peer.git#93ad77d",
+    "@types/tape": "5",
+    "events": "3",
+    "husky": "9",
+    "nyc": "17",
+    "parcel": "2",
+    "process": "0",
+    "rollup": "4",
+    "rollup-plugin-esm-import-to-url": "2",
+    "@rollup/plugin-terser": "0",
+    "tap-nyc": "1",
+    "tap-spec": "5",
+    "tape": "5",
+    "ts-node": "10",
+    "tslib": "2",
+    "typedoc": "0",
+    "typescript": "5"
+  },
+  "dependencies": {
+    "@aicacia/http": "git://github.com/aicacia/ts-http.git#84fd36a",
+    "@aicacia/hash": "0",
+    "@aicacia/rand": "0"
+  },
+  "peerDependencies": {
+    "tslib": "2"
+  },
+  "nyc": {
+    "include": [
+      "src"
+    ],
+    "exclude": [
+      "src/**/*.test.*"
+    ],
+    "extension": [
+      ".ts",
+      ".tsx"
+    ]
+  }
 }
