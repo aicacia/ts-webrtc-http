@@ -41,7 +41,7 @@
 		"@rollup/plugin-commonjs": "28",
 		"@rollup/plugin-node-resolve": "15",
 		"@rollup/plugin-typescript": "12",
-		"@aicacia/peer": "git://github.com/aicacia/ts-peer.git#16dfda5",
+		"@aicacia/peer": "0",
 		"@types/tape": "5",
 		"events": "3",
 		"husky": "9",
@@ -60,7 +60,7 @@
 		"typescript": "5"
 	},
 	"dependencies": {
-		"@aicacia/http": "git://github.com/aicacia/ts-http.git#b88244d",
+		"@aicacia/http": "0",
 		"@aicacia/hash": "0",
 		"@aicacia/rand": "0"
 	},

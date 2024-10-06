@@ -12,15 +12,15 @@ importers:
         specifier: '0'
         version: 0.2.3(tslib@2.7.0)
       '@aicacia/http':
-        specifier: git://github.com/aicacia/ts-http.git#b88244d
-        version: https://codeload.github.com/aicacia/ts-http/tar.gz/b88244d(tslib@2.7.0)
+        specifier: '0'
+        version: 0.1.0(tslib@2.7.0)
       '@aicacia/rand':
         specifier: '0'
         version: 0.2.14(tslib@2.7.0)
     devDependencies:
       '@aicacia/peer':
-        specifier: git://github.com/aicacia/ts-peer.git#16dfda5
-        version: https://codeload.github.com/aicacia/ts-peer/tar.gz/16dfda5(tslib@2.7.0)
+        specifier: '0'
+        version: 0.1.0(tslib@2.7.0)
       '@biomejs/biome':
         specifier: '1'
         version: 1.9.3
@@ -91,9 +91,8 @@ packages:
     peerDependencies:
       tslib: '2'
 
-  '@aicacia/http@https://codeload.github.com/aicacia/ts-http/tar.gz/b88244d':
-    resolution: {tarball: https://codeload.github.com/aicacia/ts-http/tar.gz/b88244d}
-    version: 0.1.0
+  '@aicacia/http@0.1.0':
+    resolution: {integrity: sha512-dSFmmNAHvb2gzjNHtRE0mi0ymml2fMWKCrJQEvCnTRprGDL/SalQeSyaRjBMyqFeqGqGTuNPyX1SmHfn65hRxg==}
     peerDependencies:
       tslib: '2'
 
@@ -107,9 +106,8 @@ packages:
     peerDependencies:
       tslib: '2'
 
-  '@aicacia/peer@https://codeload.github.com/aicacia/ts-peer/tar.gz/16dfda5':
-    resolution: {tarball: https://codeload.github.com/aicacia/ts-peer/tar.gz/16dfda5}
-    version: 0.1.0
+  '@aicacia/peer@0.1.0':
+    resolution: {integrity: sha512-We2y4T2270YE/nM/bjSeFlURcemstsxmm6d7t590CG40wXbYTrPI17R4dGa4tlZwFDGAPiRYdr9waz4RexuK+A==}
     peerDependencies:
       tslib: '2'
 
@@ -2516,7 +2514,7 @@ snapshots:
     dependencies:
       tslib: 2.7.0
 
-  '@aicacia/http@https://codeload.github.com/aicacia/ts-http/tar.gz/b88244d(tslib@2.7.0)':
+  '@aicacia/http@0.1.0(tslib@2.7.0)':
     dependencies:
       tslib: 2.7.0
 
@@ -2529,7 +2527,7 @@ snapshots:
     dependencies:
       tslib: 2.7.0
 
-  '@aicacia/peer@https://codeload.github.com/aicacia/ts-peer/tar.gz/16dfda5(tslib@2.7.0)':
+  '@aicacia/peer@0.1.0(tslib@2.7.0)':
     dependencies:
       eventemitter3: 5.0.1
       tslib: 2.7.0
