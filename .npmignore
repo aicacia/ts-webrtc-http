@@ -13,6 +13,8 @@ node_modules/
 .eslintrc
 .gitignore
 npm-debug.log
-rollup.config.js
+rollup.config.mjs
 tsconfig.esm.json
 tsconfig.json
+.env*
+pnpm-workspace.yaml
