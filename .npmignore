@@ -1,5 +1,6 @@
 parcel-cache/
 dist/
+.husky/
 .github/
 .nyc_output/
 .vscode/
