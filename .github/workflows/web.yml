@@ -20,7 +20,7 @@ jobs:
       - run: npm install -g pnpm@8
       - run: pnpm install
       - working-directory: ./example
-        run: NODE_ENV=production npx parcel build --public-url '/ts-webrtchttp' ./index.html
+        run: NODE_ENV=production npx parcel build --public-url '/ts-webrtc-http' ./index.html
 
       - uses: peaceiris/actions-gh-pages@v3
         with:
