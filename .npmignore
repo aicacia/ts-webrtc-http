@@ -1,4 +1,4 @@
-parcel-cache/
+.parcel-cache/
 dist/
 .husky/
 .github/
